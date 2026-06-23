@@ -20,6 +20,7 @@
     <div class="status" id="status" data-s="thinking" role="status" aria-live="polite" aria-atomic="true">
       <span class="dot" aria-hidden="true"></span><span id="status-label">connecting…</span>
     </div>
+    <button class="toggle" id="progress-btn" title="Your progress" aria-label="Open your progress" aria-haspopup="dialog">✦ progress</button>
     <button class="toggle" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">◐ theme</button>
     <button class="end-btn" id="end-session" title="Finish and save this session">End session</button>
   </header>
@@ -82,6 +83,15 @@
       </div>
     </div></aside>
   </main>
+
+  <div class="drawer-backdrop" id="progress-backdrop" hidden></div>
+  <aside class="drawer" id="progress-drawer" role="dialog" aria-modal="true" aria-labelledby="progress-title" hidden>
+    <div class="drawer-head">
+      <h2 id="progress-title">Your progress</h2>
+      <button class="drawer-close" id="progress-close" aria-label="Close progress">✕</button>
+    </div>
+    <div class="drawer-body" id="progress-body"></div>
+  </aside>
 
   <div class="confetti" id="confetti" aria-hidden="true"></div>
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>

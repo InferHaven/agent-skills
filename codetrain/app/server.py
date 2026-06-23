@@ -81,6 +81,44 @@ def save_session(path, data):
     os.replace(tmp, path)  # atomic: readers never see a half-written file
 
 
+def read_profile():
+    """Read the local learner profile + a recent-history index (read-only).
+
+    Touches only ~/.claude/codetrain — never executes anything. Powers the UI's
+    Progress drawer; the browser fetches it on demand (no tutor turn, no tokens)."""
+    base = os.path.join(os.path.expanduser("~"), ".claude", "codetrain")
+    prof = {}
+    try:
+        with open(os.path.join(base, "profile.json"), "r", encoding="utf-8") as f:
+            prof = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        prof = {}
+    hist = []
+    hdir = os.path.join(base, "history")
+    try:
+        names = sorted((n for n in os.listdir(hdir) if n.endswith(".md")), reverse=True)
+    except OSError:
+        names = []
+    for n in names[:12]:                       # most recent dozen — filenames sort by date
+        stem = n[:-3]
+        if len(stem) >= 11 and stem[4] == "-" and stem[7] == "-" and stem[10] == "-":
+            date, slug = stem[:10], stem[11:]   # <YYYY-MM-DD>-<slug>
+        else:
+            date, slug = "", stem
+        title = slug.replace("-", " ").strip() or stem
+        try:
+            with open(os.path.join(hdir, n), "r", encoding="utf-8") as f:
+                for line in f:                  # first non-empty line = title
+                    s = line.strip()
+                    if s:
+                        title = s.lstrip("# ").strip() or title
+                        break
+        except OSError:
+            pass
+        hist.append({"date": date, "slug": slug, "title": title})
+    return {"profile": prof if isinstance(prof, dict) else {}, "history": hist}
+
+
 def safe_join(root, rel):
     """Resolve rel under root, refusing path traversal."""
     root_r = os.path.realpath(root)
@@ -185,6 +223,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, json.dumps(data))
         if p == "/api/runtime":
             return self._send(200, json.dumps({"bash": bool(RUNTIME and RUN_IMAGE), "runtime": RUNTIME}))
+        if p == "/api/profile":
+            return self._send(200, json.dumps(read_profile()))
         if p.startswith("/") and "/" not in p[1:]:  # flat static files only
             return self._serve_static(p[1:])
         self._send(404, "not found", "text/plain")

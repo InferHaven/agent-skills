@@ -164,6 +164,63 @@ $("end-session").addEventListener("click", () => {
   toast("Wrapping up — <b>saving your progress…</b>");
 });
 
+/* ---------- progress drawer (local profile + history, on-demand) ---------- */
+let prevFocus = null;
+function progKeydown(e) { if (e.key === "Escape") closeProgress(); }
+async function openProgress() {
+  let data = {};
+  try { const r = await fetch("/api/profile", { cache: "no-store" }); data = await r.json(); } catch (e) {}
+  renderProgress(data);
+  $("progress-backdrop").hidden = false;
+  $("progress-drawer").hidden = false;
+  prevFocus = document.activeElement;
+  $("progress-close").focus();
+  document.addEventListener("keydown", progKeydown);
+}
+function closeProgress() {
+  $("progress-drawer").hidden = true;
+  $("progress-backdrop").hidden = true;
+  document.removeEventListener("keydown", progKeydown);
+  if (prevFocus && prevFocus.focus) prevFocus.focus();
+}
+function gapDue(g, today) {
+  if (typeof g === "string") return { concept: g, lang: "", due: today, overdue: true };
+  const due = g.due || today;
+  return { concept: g.concept || "(concept)", lang: g.lang || "", due, overdue: due <= today };
+}
+function renderProgress(data) {
+  const p = (data && data.profile) || {};
+  const hist = (data && data.history) || [];
+  const today = new Date().toISOString().slice(0, 10);
+  if (!Object.keys(p).length && !hist.length) {
+    $("progress-body").innerHTML = `<p class="pg-empty">Your progress will appear here after your first session.</p>`;
+    return;
+  }
+  const sec = (title, inner) => `<div class="pg-sec"><h3>${title}</h3>${inner}</div>`;
+  const list = (items) => items.length ? `<ul class="pg-list">${items.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<p class="pg-empty">—</p>`;
+  const stats = [];
+  if (p.streak) stats.push(`🔥 ${esc(p.streak)}-day streak`);
+  if (p.sessions != null) stats.push(`${esc(p.sessions)} sessions`);
+  if (p.concepts != null) stats.push(`${esc(p.concepts)} concepts`);
+  const langs = (p.languages && typeof p.languages === "object")
+    ? Object.entries(p.languages).map(([k, v]) => `${esc(k)} · ${esc(v)}`) : [];
+  const due = (p.gaps || []).map((g) => gapDue(g, today));
+  const dueNow = due.filter((g) => g.overdue).length;
+  let html = "";
+  if (stats.length) html += `<div class="pg-stats">${stats.map((s) => `<span class="pg-stat">${s}</span>`).join("")}</div>`;
+  if (langs.length) html += sec("Languages", list(langs));
+  html += sec(`Due for review${dueNow ? ` (${dueNow})` : ""}`, due.length
+    ? `<ul class="pg-list">${due.map((g) => `<li class="pg-gap ${g.overdue ? "overdue" : ""}"><span>${esc(g.concept)}${g.lang ? ` <span class="cx">${esc(g.lang)}</span>` : ""}</span><span class="due">${g.overdue ? "due" : esc(g.due)}</span></li>`).join("")}</ul>`
+    : `<p class="pg-empty">Nothing due — nice.</p>`);
+  if ((p.strengths || []).length) html += sec("Strengths", list(p.strengths.map(esc)));
+  if (hist.length) html += sec("Recent sessions",
+    `<div class="pg-hist">${hist.map((h) => `<div><div class="h-date">${esc(h.date || "")}</div><div>${esc(h.title || h.slug || "session")}</div></div>`).join("")}</div>`);
+  $("progress-body").innerHTML = html;
+}
+$("progress-btn").addEventListener("click", openProgress);
+$("progress-close").addEventListener("click", closeProgress);
+$("progress-backdrop").addEventListener("click", closeProgress);
+
 /* ---------- keyboard shortcuts: ⌘/Ctrl+↵ run · ⌘/Ctrl+⇧+↵ send/review ---------- */
 document.addEventListener("keydown", (e) => {
   if (!(e.metaKey || e.ctrlKey) || e.key !== "Enter") return;

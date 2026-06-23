@@ -481,3 +481,37 @@ body {
   }
   .done .step-head::after { animation: none; opacity: .6; }
 }
+
+/* ---------- progress drawer ---------- */
+.drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; }
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100%; width: min(420px, 92vw); z-index: 301;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border-left: 1px solid var(--line); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; animation: drawerIn .28s cubic-bezier(.2,.7,.2,1);
+}
+@keyframes drawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid var(--line);
+}
+.drawer-head h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; color: var(--ink); margin: 0; }
+.drawer-close {
+  font-family: var(--body); background: transparent; border: 1px solid var(--line-2);
+  color: var(--ink-soft); border-radius: 8px; padding: 4px 11px; cursor: pointer; transition: all .2s;
+}
+.drawer-close:hover { color: var(--ink); border-color: var(--accent); }
+.drawer-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; }
+.pg-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.pg-stat { background: var(--bg); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; font-size: 0.82rem; color: var(--ink); }
+.pg-sec h3 { font-family: var(--display); font-weight: 600; font-size: 0.95rem; color: var(--ink); margin: 0 0 8px; }
+.pg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pg-list li { font-size: 0.86rem; color: var(--ink-soft); }
+.pg-gap { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pg-gap .cx { color: var(--ink-faint); font-size: 0.76rem; }
+.pg-gap .due { font-family: var(--mono); font-size: 0.74rem; color: var(--accent); white-space: nowrap; }
+.pg-gap.overdue .due { color: var(--retry); }
+.pg-empty { color: var(--ink-faint); font-style: italic; font-size: 0.86rem; margin: 0; }
+.pg-hist { display: flex; flex-direction: column; gap: 10px; }
+.pg-hist .h-date { color: var(--ink-faint); font-family: var(--mono); font-size: 0.72rem; }
+.pg-hist > div > div:last-child { font-size: 0.88rem; color: var(--ink-soft); }
