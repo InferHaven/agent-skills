@@ -1,52 +1,54 @@
-/* CodeTrain — "study lamp / atelier" theme.
-   Warm near-black + parchment ink + a single marigold accent.
-   Dark-first; light mode via [data-theme="light"]. */
+/* CodeTrain — cool-slate theme.
+   Cool near-black + soft ink + the CodeTrain teal accent (#39aaaa),
+   with a sparing brand red (#aa3939). Dark-first; light via [data-theme="light"]. */
 
 :root {
   --display: "Fraunces", Georgia, "Times New Roman", serif;
   --body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --bg:       #14110d;
-  --bg-2:     #1b1712;
-  --panel:    #211c16;
-  --panel-2:  #27211a;
-  --line:     #362d22;
-  --line-2:   #463a2c;
-  --ink:      #f3ead8;
-  --ink-soft: #c7b99f;
-  --ink-faint:#8b7c64;
-  --accent:   #e8a33d;
-  --accent-2: #f0b860;
-  --accent-ink:#1a1208;
-  --good:     #97bd6f;
-  --good-bg:  #232a18;
-  --retry:    #e3886a;
-  --retry-bg: #2c1d16;
-  --lamp:     rgba(232,163,61,0.16);
-  --shadow:   0 24px 60px -28px rgba(0,0,0,0.75);
+  --bg:       #10151a;
+  --bg-2:     #161d23;
+  --panel:    #19222a;
+  --panel-2:  #1e2832;
+  --line:     #2a3742;
+  --line-2:   #384854;
+  --ink:      #e7eef2;
+  --ink-soft: #a6b3bd;
+  --ink-faint:#6d7c87;
+  --accent:   #39aaaa;
+  --accent-2: #5fc6c6;
+  --accent-ink:#06201f;
+  --good:     #5cb88a;
+  --good-bg:  #142420;
+  --retry:    #e0876b;
+  --retry-bg: #2a1b16;
+  --brand-2:  #aa3939;
+  --lamp:     rgba(57,170,170,0.16);
+  --shadow:   0 24px 60px -28px rgba(0,0,0,0.78);
   --radius:   14px;
 }
 
 [data-theme="light"] {
-  --bg:       #ece3d1;
-  --bg-2:     #f3ecdc;
-  --panel:    #fbf6ea;
-  --panel-2:  #f4ecda;
-  --line:     #e0d3bb;
-  --line-2:   #d0bf9f;
-  --ink:      #2a2117;
-  --ink-soft: #5c4f3c;
-  --ink-faint:#8c7c63;
-  --accent:   #bd7714;
-  --accent-2: #a9670d;
-  --accent-ink:#fff7e9;
-  --good:     #5d7c3f;
-  --good-bg:  #e7ecd6;
-  --retry:    #bb5734;
-  --retry-bg: #f3e1d6;
-  --lamp:     rgba(189,119,20,0.14);
-  --shadow:   0 22px 50px -30px rgba(80,60,20,0.45);
+  --bg:       #eef2f4;
+  --bg-2:     #e6ecef;
+  --panel:    #ffffff;
+  --panel-2:  #f4f8fa;
+  --line:     #d8e1e7;
+  --line-2:   #bccbd4;
+  --ink:      #16212a;
+  --ink-soft: #46555f;
+  --ink-faint:#78888f;
+  --accent:   #1f7f7f;
+  --accent-2: #15706e;
+  --accent-ink:#ffffff;
+  --good:     #3f7d5a;
+  --good-bg:  #dceee4;
+  --retry:    #b9553a;
+  --retry-bg: #f4e2db;
+  --brand-2:  #9c3333;
+  --lamp:     rgba(31,127,127,0.12);
+  --shadow:   0 22px 50px -30px rgba(40,60,70,0.40);
 }
 
 * { box-sizing: border-box; }
@@ -59,7 +61,7 @@ body {
   color: var(--ink);
   background:
     radial-gradient(1200px 600px at 12% -8%, var(--lamp), transparent 60%),
-    radial-gradient(900px 500px at 110% 0%, rgba(151,189,111,0.07), transparent 55%),
+    radial-gradient(900px 500px at 110% 0%, rgba(57,170,170,0.05), transparent 55%),
     var(--bg);
   background-attachment: fixed;
   line-height: 1.55;
@@ -239,7 +241,7 @@ body {
 .celayers .chl { z-index: 0; pointer-events: none; color: var(--ink); background: transparent; }
 .celayers .chl code { font: inherit; white-space: pre; background: none; padding: 0; }
 .celayers .cinput { z-index: 1; color: transparent; background: transparent; caret-color: var(--accent); resize: none; outline: none; }
-.celayers .cinput::selection { background: rgba(232,163,61,0.28); }
+.celayers .cinput::selection { background: rgba(57,170,170,0.30); }
 
 /* Prism token colors mapped to the palette (tracks light/dark) */
 .chl .token.comment, .chl .token.prolog, .chl .token.doctype, .chl .token.cdata { color: var(--ink-faint); font-style: italic; }

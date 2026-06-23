@@ -69,7 +69,7 @@ function toast(html, ms = 4200) {
 }
 function fireConfetti() {
   const root = $("confetti"); if (!root) return;
-  const colors = ["#e8a33d", "#f0b860", "#97bd6f", "#e3886a", "#f3ead8"];
+  const colors = ["#39aaaa", "#5fc6c6", "#aa3939", "#5cb88a", "#e7eef2"];
   for (let i = 0; i < 90; i++) {
     const p = document.createElement("i");
     p.className = "cpiece";
