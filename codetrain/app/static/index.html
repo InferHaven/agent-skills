@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CodeTrain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">Code<em>·</em>Trainer</span>
+      <span class="title" id="title">Loading your session…</span>
+    </div>
+    <span class="spacer"></span>
+    <span class="badge" id="mode-badge" hidden></span>
+    <div class="status" id="status" data-s="thinking">
+      <span class="dot"></span><span id="status-label">connecting…</span>
+    </div>
+    <button class="toggle" id="theme-toggle" title="Toggle light / dark">◐ theme</button>
+    <button class="end-btn" id="end-session" title="Finish and save this session">End session</button>
+  </header>
+
+  <div class="paused-banner" id="paused-banner" hidden>
+    ⏸ Session paused — switch to your terminal and say <b>“arm it”</b> to resume. The page stays live.
+  </div>
+
+  <main class="layout">
+    <!-- LESSON / INTAKE -->
+    <section class="panel lesson"><div class="pad" id="lesson">
+      <p class="eyebrow">getting ready</p>
+      <h1 class="step-head">Your tutor is setting up…</h1>
+      <p class="md">Hang tight — the first step will appear here in a moment.</p>
+    </div></section>
+
+    <!-- WORK: editor + run + feedback + tests -->
+    <section class="panel work"><div class="pad">
+      <div class="file-tab">
+        <span>✎</span><span class="name" id="file-name">scratch</span>
+        <span class="lang" id="file-lang">text</span>
+      </div>
+
+      <div class="editor" id="editor-mount"></div>
+
+      <div class="actions">
+        <button class="btn run" id="run">Run ▷</button>
+        <button class="btn primary" id="send">Send to tutor →</button>
+        <button class="btn ask" id="review" title="Get a full walkthrough — even if it isn't passing yet">Review my attempt</button>
+        <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
+      </div>
+      <div class="askrow">
+        <input class="note-input" id="note" placeholder="ask a question, or note what you tried…" />
+        <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask ?</button>
+      </div>
+      <p class="run-hint" id="run-hint">Tip: <b>Run</b> to check yourself (<kbd>⌘/Ctrl+↵</kbd>). Send when green — or <b>Review my attempt</b> anytime for a walkthrough, even if it's failing.</p>
+
+      <div id="output-wrap"></div>
+      <div id="cases-wrap"></div>
+      <div id="feedback-wrap"></div>
+      <div id="tests-wrap"></div>
+    </div></section>
+
+    <!-- RAIL: progress + learned -->
+    <aside class="panel rail"><div class="pad">
+      <div id="profile-wrap"></div>
+      <div>
+        <h2>Session</h2>
+        <div class="meta-row" id="meta-level">Level: <b>—</b></div>
+        <div class="meta-row" id="meta-goal">Goal: <b>—</b></div>
+      </div>
+      <div>
+        <h2>Progress</h2>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="prog-label">not started</div>
+      </div>
+      <div>
+        <h2>✦ What you've learned</h2>
+        <ul class="learned" id="learned"><li class="empty">Your wins will collect here as you go.</li></ul>
+      </div>
+    </div></aside>
+  </main>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <div class="toast" id="toast"></div>
+  <script src="prism.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
