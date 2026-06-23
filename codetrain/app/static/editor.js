@@ -14,10 +14,10 @@ function grammar(l) { return LANG[(l || "").toLowerCase()] || "none"; }
 function makePrism(mount, opts) {
   mount.classList.add("cwrap");
   mount.innerHTML = `
-    <div class="gutter" data-gutter>1</div>
+    <div class="gutter" data-gutter aria-hidden="true">1</div>
     <div class="celayers">
       <pre class="chl" aria-hidden="true"><code></code></pre>
-      <textarea class="cinput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
+      <textarea class="cinput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Code editor"></textarea>
     </div>`;
   const ta = mount.querySelector(".cinput");
   const code = mount.querySelector(".chl code");
@@ -63,7 +63,7 @@ function makePrism(mount, opts) {
 }
 
 function makeTextarea(mount, opts) {
-  mount.innerHTML = '<div class="ta-wrap"><div class="gutter" data-gutter>1</div><textarea spellcheck="false"></textarea></div>';
+  mount.innerHTML = '<div class="ta-wrap"><div class="gutter" data-gutter aria-hidden="true">1</div><textarea spellcheck="false" aria-label="Code editor"></textarea></div>';
   const ta = mount.querySelector("textarea");
   const gutter = mount.querySelector("[data-gutter]");
   ta.value = opts.doc || "";

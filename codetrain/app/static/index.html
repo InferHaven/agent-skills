@@ -17,10 +17,10 @@
     </div>
     <span class="spacer"></span>
     <span class="badge" id="mode-badge" hidden></span>
-    <div class="status" id="status" data-s="thinking">
-      <span class="dot"></span><span id="status-label">connecting…</span>
+    <div class="status" id="status" data-s="thinking" role="status" aria-live="polite" aria-atomic="true">
+      <span class="dot" aria-hidden="true"></span><span id="status-label">connecting…</span>
     </div>
-    <button class="toggle" id="theme-toggle" title="Toggle light / dark">◐ theme</button>
+    <button class="toggle" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">◐ theme</button>
     <button class="end-btn" id="end-session" title="Finish and save this session">End session</button>
   </header>
 
@@ -30,16 +30,16 @@
 
   <main class="layout">
     <!-- LESSON / INTAKE -->
-    <section class="panel lesson"><div class="pad" id="lesson">
+    <section class="panel lesson" aria-label="Lesson"><div class="pad" id="lesson">
       <p class="eyebrow">getting ready</p>
       <h1 class="step-head">Your tutor is setting up…</h1>
       <p class="md">Hang tight — the first step will appear here in a moment.</p>
     </div></section>
 
     <!-- WORK: editor + run + feedback + tests -->
-    <section class="panel work"><div class="pad">
+    <section class="panel work" aria-label="Your work"><div class="pad">
       <div class="file-tab">
-        <span>✎</span><span class="name" id="file-name">scratch</span>
+        <span aria-hidden="true">✎</span><span class="name" id="file-name">scratch</span>
         <span class="lang" id="file-lang">text</span>
       </div>
 
@@ -59,12 +59,12 @@
 
       <div id="output-wrap"></div>
       <div id="cases-wrap"></div>
-      <div id="feedback-wrap"></div>
+      <div id="feedback-wrap" aria-live="polite" aria-atomic="true"></div>
       <div id="tests-wrap"></div>
     </div></section>
 
     <!-- RAIL: progress + learned -->
-    <aside class="panel rail"><div class="pad">
+    <aside class="panel rail" aria-label="Progress and notes"><div class="pad">
       <div id="profile-wrap"></div>
       <div>
         <h2>Session</h2>
@@ -73,7 +73,7 @@
       </div>
       <div>
         <h2>Progress</h2>
-        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="progress-track" id="prog-track" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
         <div class="progress-label" id="prog-label">not started</div>
       </div>
       <div>
@@ -84,7 +84,7 @@
   </main>
 
   <div class="confetti" id="confetti" aria-hidden="true"></div>
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="prism.js"></script>
   <script type="module" src="app.js"></script>
 </body>

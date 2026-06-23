@@ -69,6 +69,7 @@ function toast(html, ms = 4200) {
 }
 function fireConfetti() {
   const root = $("confetti"); if (!root) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const colors = ["#39aaaa", "#5fc6c6", "#aa3939", "#5cb88a", "#e7eef2"];
   for (let i = 0; i < 90; i++) {
     const p = document.createElement("i");
@@ -221,8 +222,8 @@ function caseRows(rows, stamp) {
   const items = rows.map((r) => {
     if (r.pending) return `<li class="case pending"><span class="ci">▷</span><span class="cn">${esc(r.name || "case")}</span><span class="cx">not run</span></li>`;
     const ok = r.passed;
-    const detail = (!ok && r.error) ? `<div class="cio">error: ${esc(r.error)}</div>`
-      : (!ok) ? `<div class="cio">expected <code>${esc(JSON.stringify(r.expected))}</code> · got <code>${esc(JSON.stringify(r.got))}</code></div>` : "";
+    const detail = (!ok && r.error) ? `<div class="cdiff"><span class="cd-err">error: ${esc(r.error)}</span></div>`
+      : (!ok) ? `<div class="cdiff"><span class="cd-exp">expected <code>${esc(JSON.stringify(r.expected))}</code></span><span class="cd-got">got <code>${esc(JSON.stringify(r.got))}</code></span></div>` : "";
     return `<li class="case ${ok ? "pass" : "fail"}"><span class="ci">${ok ? "✓" : "✗"}</span><span class="cn">${esc(r.name || "case")}</span>${detail}</li>`;
   }).join("");
   const passed = rows.filter((r) => r.passed).length;
@@ -260,6 +261,7 @@ function updateRail(s) {
     if (p.step) {
       const pct = p.total ? Math.round((p.step / p.total) * 100) : Math.min(p.step * 14, 92);
       $("prog-fill").style.width = pct + "%";
+      const track = $("prog-track"); if (track) track.setAttribute("aria-valuenow", pct);
       $("prog-label").textContent = p.total ? `step ${p.step} of ${p.total}` : `step ${p.step}`;
     }
     cache.prog = sig;
