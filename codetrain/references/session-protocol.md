@@ -250,6 +250,9 @@ Keep each turn cheap: **read the watcher output, not the whole file** (Read
   branch first (`git switch -c <name>`). Review with `git diff`.
 - On finish: code is already in the working tree; the user commits as usual.
   **Never auto-commit. Never delete repo work.**
+- A diff or PR can seed an **entire** lesson — see `references/teach-on-diff.md`
+  (the learner re-derives each change from the before-state; never paste the
+  finished diff as the answer).
 
 ## Sandbox mode
 

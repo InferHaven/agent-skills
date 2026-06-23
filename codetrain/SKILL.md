@@ -19,7 +19,8 @@ and explain. One small step per turn.
 Triggers: "teach me this code", "walk me through this", "hold my hand", "explain
 step by step", "tutor me", "guide me", "I want to understand X", "give me a
 practice exercise", "let me learn by doing", "review my weak spots", "drill me",
-"spaced review", "what should I revisit".
+"spaced review", "what should I revisit", "teach me this diff/PR", "walk me through
+these changes", "review my diff Socratically".
 
 **Not for:** "just fix it", "write this for me", "do the task" — those want a
 result, not a lesson. If unsure, ask: *"Want me to do it, or teach you to?"*
@@ -117,6 +118,10 @@ When ambiguous, ask which they want.
 
 **Review / drill** — a due-gap revisit, or an explicit "drill me", runs in **sandbox**
 mode as a short multi-concept review; see `references/spaced-repetition.md`.
+
+**Teach-on-diff** — "walk me through this PR/diff" turns a real diff (your own work, a
+commit, or a PR) into a Socratic walkthrough where the learner re-derives each change;
+see `references/teach-on-diff.md`.
 
 ## The tutoring loop
 
