@@ -60,7 +60,8 @@ launch command, the auto-review loop, and teardown live in
 
 Paths are relative to `$SKILL_DIR` (this skill's base directory, shown when the
 skill loads). Never hardcode `/root/...` — it differs per install. Requires
-`python3`.
+`python3`. For prompt-free sessions the user runs `app/install-permissions.py` once
+(a scoped, auditable allow-list — see `references/session-protocol.md`).
 
 ## Memory & progress (token-cheap)
 

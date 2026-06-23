@@ -29,13 +29,16 @@ mkdir -p "$DEST"
 cp -R "$SRC/SKILL.md" "$SRC/app" "$SRC/references" "$DEST/"
 [ -f "$SRC/README.md" ] && cp "$SRC/README.md" "$DEST/" || true
 chmod +x "$DEST/app/server.py" "$DEST/app/watch.sh" "$DEST/app/ctl.sh" \
-         "$DEST/app/patch.py" "$DEST/app/checkpoint-hook.sh" 2>/dev/null || true
+         "$DEST/app/patch.py" "$DEST/app/checkpoint-hook.sh" \
+         "$DEST/app/install-permissions.py" 2>/dev/null || true
 
 echo "Installed CodeTrain → $DEST"
 echo "Restart Claude Code, then say: \"teach me this code\" / \"walk me through this\" / \"give me a practice exercise\"."
 echo
-echo "Optional — for prompt-free live sessions, add these scoped rules to"
-echo "~/.claude/settings.json (or .claude/settings.local.json) under permissions.allow:"
-echo "    \"Read(//tmp/codetrain-*/**)\","
-echo "    \"Write(//tmp/codetrain-*/**)\","
-echo "    \"Bash(bash $DEST/app/ctl.sh:*)\""
+echo "Optional: make live tutoring sessions prompt-free with a small, scoped"
+echo "allow-list (additive; shown in full before anything is written)."
+if [ -t 0 ] && [ -t 1 ]; then
+  python3 "$DEST/app/install-permissions.py" --skill-dir "$DEST" || true
+else
+  echo "  Run when ready:  python3 \"$DEST/app/install-permissions.py\" --skill-dir \"$DEST\""
+fi

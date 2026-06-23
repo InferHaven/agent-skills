@@ -59,6 +59,11 @@ git clone <this-repo> && cd <repo>/codetrain
 
 Restart Claude Code.
 
+`install.sh` also offers to make live sessions **prompt-free** by adding a small,
+scoped allow-list to your Claude Code settings (previewed before writing; additive —
+it never touches your other rules). Run it later anytime with
+`python3 ~/.claude/skills/codetrain/app/install-permissions.py`.
+
 **Develop it (live edits):** symlink instead of copy —
 
 ```bash
@@ -83,6 +88,10 @@ Claude launches the UI and prints a `http://127.0.0.1:PORT` link. Open it and go
 - File writes are **path-traversal guarded** to the session workspace.
 - Progress is stored **locally** under `~/.claude/codetrain/` (profile + session
   summaries) — never uploaded, no secrets.
+- **No external network calls** — the UI, fonts (self-hosted, OFL), and syntax
+  highlighter are all vendored; nothing phones home and it works fully offline.
+- **Prompt-free via a scoped, auditable allow-list** (`app/install-permissions.py`),
+  never a blanket "skip permissions" — the right posture for team/enterprise review.
 
 ## Cross-agent
 

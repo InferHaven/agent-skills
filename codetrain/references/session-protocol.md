@@ -47,21 +47,35 @@ the first poll shows something real.
 
 ## Frictionless permissions (one-time)
 
-To avoid per-turn approval prompts during live sessions, add these scoped rules to
-settings (`~/.claude/settings.json` or project `.claude/settings.local.json`):
+Skills can't grant permissions at trigger time, so a one-time, scoped allow-list is
+how live sessions stay prompt-free. **Run the installer** — it previews every line and
+writes nothing without your OK:
+
+```bash
+python3 "$SKILL_DIR/app/install-permissions.py"     # merges into ~/.claude/settings.json
+# --settings <file> to target another · --dry-run to preview · --yes to skip the prompt
+```
+
+It merges this complete, scoped set into `permissions.allow` (additive — it never
+rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
 
 ```json
 { "permissions": { "allow": [
-  "Read(//tmp/codetrain-*/**)",
+  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",   // serve/watch/patch/run/stop — the whole per-turn loop
+  "Read(//tmp/codetrain-*/**)",            // sandbox workspace
   "Write(//tmp/codetrain-*/**)",
-  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)"
+  "Read(//<HOME>/.claude/codetrain/**)",   // learner profile + history
+  "Write(//<HOME>/.claude/codetrain/**)",
+  "Bash(mktemp -d /tmp/codetrain-*)",      // sandbox creation
+  "Bash(git diff:*)"                       // repo-mode review / teach-on-diff (read-only)
 ] } }
 ```
 
-Replace `<SKILL_DIR>` with the skill's real path (e.g. `~/.claude/skills/codetrain`).
-`install.sh` prints these. Skills can't grant permissions at trigger time, so this
-one-time allowlist is how sessions stay prompt-free. Everything stays scoped to the
-throwaway sandbox + this skill's own control script.
+This is a **scoped** allow-list, not a bypass — everything else still prompts, which is
+exactly what a team/enterprise security review wants. The dominant cost (the per-turn
+`ctl.sh watch` re-arm + `ctl.sh patch`) all routes through the single `ctl.sh` rule, so
+that one line removes most of the friction. If you rename or move the skill, re-run the
+installer so the path rule matches.
 
 ## The auto-review loop (default interactivity)
 
