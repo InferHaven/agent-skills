@@ -264,11 +264,12 @@ generic exercise) — even if the user happens to be inside a repo.
 ## Learner memory (cheap)
 
 `profile.json` (small) is the cross-session memory. **Start:** read it *only* — to
-greet, default the level, suggest a topic, and resurface a due gap (spaced
-repetition); surface via the `profile` block + intake `intro`. **End:** append
-`history/<date>-<slug>.md` and update `profile.json` (totals, streak by date,
-strengths/gaps). Never load `history/` into context unless resuming a specific
-past session.
+greet, default the level, suggest a topic, and resurface **due gaps** as a quick
+review drill (spaced repetition); surface via the `profile` block + intake `intro`.
+**End:** append `history/<date>-<slug>.md` and update `profile.json` (totals, streak
+by date, strengths; **reschedule reviewed gaps + log new ones**). Gaps are scheduled
+records (`due`/`interval_days`/`ease`) — see `references/spaced-repetition.md`. Never
+load `history/` into context unless resuming a specific past session.
 
 ## Teardown
 

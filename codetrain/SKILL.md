@@ -18,7 +18,8 @@ and explain. One small step per turn.
 
 Triggers: "teach me this code", "walk me through this", "hold my hand", "explain
 step by step", "tutor me", "guide me", "I want to understand X", "give me a
-practice exercise", "let me learn by doing".
+practice exercise", "let me learn by doing", "review my weak spots", "drill me",
+"spaced review", "what should I revisit".
 
 **Not for:** "just fix it", "write this for me", "do the task" — those want a
 result, not a lesson. If unsure, ask: *"Want me to do it, or teach you to?"*
@@ -68,18 +69,20 @@ skill loads). Never hardcode `/root/...` — it differs per install. Requires
 CodeTrain remembers the learner across sessions via small files under
 `$HOME/.claude/codetrain/`:
 - `profile.json` — a compact learner profile (languages + level, goals, strengths,
-  recurring gaps, a one-line notes field, streak, totals). Keep it SMALL.
+  **scheduled gaps**, a one-line notes field, streak, totals). Keep it SMALL.
 - `history/<date>-<slug>.md` — one summary per finished session.
 
 Rules that keep this cheap:
 - **At session start, read ONLY `profile.json`** (one small file). Use it to greet a
-  returning learner, default their level, suggest a topic, and — if a past *gap* is
-  due — open with a quick **spaced-repetition revisit**. Surface it in the UI by
-  setting `session.json`'s `profile` block (`streak`, `sessions`, `concepts`,
-  `welcome`) and the intake `intro`. Do **not** read `history/` unless the user asks
-  to resume a specific past session.
+  returning learner, default their level, suggest a topic, and — if any **gap is due**
+  (`due` ≤ today) — offer or open a quick **review drill** on it (spaced repetition;
+  see `references/spaced-repetition.md`). Surface it in the UI by setting
+  `session.json`'s `profile` block (`streak`, `sessions`, `concepts`, `welcome`) and
+  the intake `intro`. Do **not** read `history/` unless the user asks to resume a
+  specific past session.
 - **At session end, write two small files**: append `history/<date>-<slug>.md` and
-  update `profile.json`. Never load all history into context.
+  update `profile.json` (**reschedule reviewed gaps + log new ones**, per
+  `references/spaced-repetition.md`). Never load all history into context.
 
 First run / no profile: create the dir and a fresh `profile.json`. Local-only
 learner data — no secrets.
@@ -111,6 +114,9 @@ digraph mode {
   throwaway and touches none of their real files.**
 
 When ambiguous, ask which they want.
+
+**Review / drill** — a due-gap revisit, or an explicit "drill me", runs in **sandbox**
+mode as a short multi-concept review; see `references/spaced-repetition.md`.
 
 ## The tutoring loop
 
@@ -207,7 +213,9 @@ Triggered when the goal is met, the user stops, or they click **End session** (a
    automatically and shows a Copy-recap button + a "head back to your terminal" note.
 2. Ensure `learned` holds every concept (it shows in the rail).
 3. **Save progress** (cheap, 2 small writes): append `history/<date>-<slug>.md`;
-   update `profile.json` (totals, streak by date, new strengths/gaps/goals).
+   update `profile.json` (totals, streak by date, new strengths/goals). For gaps:
+   **reschedule** any you reviewed and **log** any new ones (`due`/`interval_days`/
+   `ease`) — see `references/spaced-repetition.md`.
 4. Stop the server: `bash $SKILL_DIR/app/ctl.sh stop <workspace>` (and the watcher).
    Repo code is already in the working tree (commit as usual — **never auto-commit,
    never delete repo work**). Sandbox temp dir: leave it, or `rm -rf` only if asked.
