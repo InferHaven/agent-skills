@@ -1,10 +1,11 @@
-# Session Protocol (read when running a tutor session)
+# Session Protocol (deep reference)
 
-The contract between **you (the tutor brain)** and the **web UI**. The server is
-dumb: it serves the UI and reads/writes one JSON file, and it **never executes
-user code**. You drive everything by editing that file each turn; the browser
-polls it (~1.2s) and renders. You react to the user's browser actions
-automatically via a background watcher (see "The auto-review loop").
+`SKILL.md` is self-sufficient for a normal session — **read this only for an edge case**
+(an unusual field, the full inbox table, debugging the server). It's the complete contract
+between **you (the tutor brain)** and the **web UI**: the server is dumb (serves the UI +
+one JSON file, **never executes user code**); you edit that file each turn via small
+patches; the browser polls (~1.2s) and renders; a background watcher wakes you on the
+user's actions (see "The auto-review loop").
 
 ## Paths
 
@@ -23,24 +24,24 @@ do NOT hardcode `/root/...`; it differs per install).
 
 `<workspace>` = the git repo root (repo mode) or `/tmp/codetrain-XXXX` (sandbox).
 
-## Launch (once per session, in the background)
+## Launch (once per session, detached)
 
-Reuse a live server if one's already up: **Read** `<workspace>/.tutor/url.txt` with the
-Read tool (allow-listed); if it exists and the URL answers, reuse it. Otherwise start
-one with a single standalone command:
+Keep the `.tutor` **session state in `/tmp`** (allow-listed) even in repo mode: make a
+session dir with `bash "$SKILL_DIR/app/ctl.sh" sandbox`, then serve it. Reuse a live
+server first: **Read** `<session-dir>/.tutor/url.txt` (Read tool); if it answers, reuse.
+Otherwise:
 
 ```bash
-bash "$SKILL_DIR/app/ctl.sh" serve "<workspace>"   # run with run_in_background: true
+bash "$SKILL_DIR/app/ctl.sh" serve "<session-dir>"            # sandbox
+bash "$SKILL_DIR/app/ctl.sh" serve "<session-dir>" "<repo>"   # repo: code writes -> repo
 ```
 
-Use `ctl.sh` (not raw `python3 …`/`kill …`) for **sandbox / serve / watch / stop** — a
-single stable command form, allow-listed once so live sessions never prompt (see
-"Frictionless permissions"). Call it **standalone** — never inside a pipe / `;` / `$( )`.
-
-It prints `TUTOR_URL=http://127.0.0.1:PORT` (also written to `.tutor/url.txt`).
-Capture it and give the user the clickable link. Port auto-advances from 7341 if
-busy; binds to loopback only. Write `session.json` before/right after launch so
-the first poll shows something real.
+`serve` launches the server **detached** (`setsid`+`nohup`) so the page survives even if
+your Claude session ends; it prints `TUTOR_URL=http://127.0.0.1:PORT` (also in
+`.tutor/url.txt`) and returns. Give the user the link. Use `ctl.sh` (sandbox / serve /
+watch / patch / run / stop) **standalone** — never inside a pipe / `;` / `$( )`. Port
+auto-advances from 7341; loopback only. On resume in a new session, the reuse-check finds
+the live server — just re-arm the watcher.
 
 ## Frictionless permissions (one-time)
 
@@ -59,10 +60,12 @@ rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
 ```json
 { "permissions": { "allow": [
   "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",         // sandbox/serve/watch/patch/run/stop — the whole loop
-  "Read(//tmp/codetrain-*/**)",                  // sandbox workspace
+  "Read(//tmp/codetrain-*/**)",                  // sandbox + session state + patch.json
   "Write(//tmp/codetrain-*/**)",
+  "Edit(//tmp/codetrain-*/**)",
   "Read(//<HOME>/.claude/codetrain/**)",         // learner profile + history
   "Write(//<HOME>/.claude/codetrain/**)",
+  "Edit(//<HOME>/.claude/codetrain/**)",
   "Read(//<HOME>/.claude/skills/codetrain/**)",  // the skill's own references the tutor reads
   "Bash(mktemp -d /tmp/codetrain-*)",            // direct mktemp (ctl.sh sandbox also covers this)
   "Bash(git diff:*)"                             // repo-mode review / teach-on-diff (read-only)
@@ -75,9 +78,10 @@ re-run the installer so the path rule matches.
 
 **Invocation discipline (matters as much as the rules):** Claude Code checks *every*
 segment of a compound/piped command, so one non-listed segment makes the whole thing
-prompt. So: call `ctl.sh` **standalone** (never in `|`, `;`, `&&`, or `$( )`); pass the
-patch delta as an **arg** (`ctl.sh patch <ws> '<delta>'`, not `printf … | …`); do file
-I/O with the **Read/Write tools** (sandbox + profile + skill paths are listed), not bash
+prompt. So: call `ctl.sh` **standalone** (never in `|`, `;`, `&&`, or `$( )`); patch by
+**writing `<ws>/.tutor/patch.json` with the Write tool** then `ctl.sh patch <ws>` (never
+`printf … | …` or a JSON shell-arg — they break on quotes/parens and prompt); do file I/O
+with the **Read/Write/Edit tools** (sandbox + profile + skill paths are listed), not bash
 `cat`/`echo`/heredocs; make the sandbox with `ctl.sh sandbox`; run a bash step via
 `ctl.sh run <ws>`. This is what actually keeps a live session prompt-free.
 
@@ -116,6 +120,7 @@ paths work.
   "title": "Parsing CSV by hand in Python",
   "level": null,                     // from intake: beginner|intermediate|advanced
   "goal": null,                      // from intake (user's words)
+  "guidance": "balanced",            // from intake: minimal|balanced|guided (hint count / step size)
   "phase": "intake",                 // "intake" | "learning" | "done"
   "intro": "one warm line for the intake screen",     // optional
   "progress": { "step": 1, "total": null },           // total optional
@@ -189,15 +194,16 @@ anytime; never refuse it. After handling, clear the inbox via the patch
 ## Updating cheaply — patch deltas (every turn)
 
 Do **not** Read + Write the whole `session.json` each turn — that's the main token
-sink. Pass a small JSON **delta** as an argument to a single standalone command:
+sink. **Write the delta to `<session-dir>/.tutor/patch.json` with the Write tool**, then:
 
 ```bash
-bash "$SKILL_DIR/app/ctl.sh" patch <workspace> '<delta-json>'
+bash "$SKILL_DIR/app/ctl.sh" patch <session-dir>
 ```
 
-Pass the delta as an **arg**, not a `printf … | …` pipe — one standalone command the
-`ctl.sh` rule matches, so it never prompts (a pipe prompts: Claude Code checks each
-segment). Stdin still works if you give no arg.
+It applies `patch.json` (deep-merge) and deletes it. The **file** path is robust — JSON
+with `(`, quotes, or newlines just works: no shell quoting, no prompt. Do **not** pipe
+`printf … | …` or pass the JSON as a shell arg (both break + prompt). Dotted top-level
+keys are expanded (`"progress.step": 2`). (An arg / stdin still work as a fallback.)
 
 It deep-merges into the session. Special keys: `clear_inbox:true` → `inbox:[]`;
 `learned_append:"…"|[…]` → append to `learned`; `step_patch:{index?,…}` → merge into
@@ -228,23 +234,23 @@ broken submits reach you.
 
 For **bash/shell**: if the server detects a container runtime (docker/podman) it runs
 the user's command in a throwaway, network-disabled container and shows real output
-(no client pass/fail — you review). If not, **Run** is hidden and you run the step's
-command via `bash "$SKILL_DIR/app/ctl.sh" run <workspace>` (one allow-listed command —
-no per-command prompts). Bash submits never claim "checks passed" client-side.
+(no client pass/fail — you review). **No container? Don't run it yourself** — write the
+step so the user runs the command in *their own terminal* and **describes / pastes what
+they saw**; you review the description (more Socratic, fewer tokens, zero prompts). Only
+to verify a declared check, use `bash "$SKILL_DIR/app/ctl.sh" run <session-dir>`. Bash
+submits never claim "checks passed" client-side.
 
-On wake, the watcher prints the submitted code **and** the `client_tests` summary,
-so:
+On wake, the watcher prints the submitted code **and** the `client_tests` summary, so:
 
-- **If `client_tests` says all passed** → trust it. Do **not** re-run. Give brief
-  concept feedback and advance. (Spot-check only if something seems off.)
-- **If some failed / no client tests** (bash, repo, or runtime offline) → run
-  `tests.cmd` yourself, write `output`/`passed`, and to show the ✓/✗ checklist for
-  non-runnable languages fill each `cases[i]` with `passed` (+ `got` on failure).
+- **If `client_tests` says all passed** → trust it. Do **not** re-run. Brief concept
+  feedback + advance. (Spot-check only if something seems off.)
+- **If some failed / no client tests** (bash, repo, or runtime offline) → review the
+  user's described output (bash), or run `tests.cmd` yourself (complex py/js), filling
+  `output`/`passed` (+ per-case `got` on failure).
 
-Keep each turn cheap: **read the watcher output, not the whole file** (Read
-`session.json` only if you need more); **≤2–3 tool calls per turn** (one Write to
-`session.json`, one Bash to re-arm `watch.sh`, plus a test run only when needed);
-**never poll** — rely on the watcher wake; **one watcher at a time**.
+Keep each turn cheap: **read the watcher output, never re-Read `session.json`** or the
+skill's scripts; patch by **writing `.tutor/patch.json`** (not a full session write);
+**≤2–3 tool calls per turn**; **never poll**; **one watcher at a time**.
 
 ## Repo mode — the code is REAL
 
@@ -292,5 +298,6 @@ load `history/` into context unless resuming a specific past session.
 - Write the final recap first: `phase:"done"`, celebratory `title`, `summary_md`,
   full `learned` list — so the last screen is the summary (confetti fires in the UI).
 - **Save progress:** append a `history/` summary + update `profile.json` (2 small writes).
-- Stop the server: `bash "$SKILL_DIR/app/ctl.sh" stop <workspace>` (and the watcher).
+- Stop the server: `bash "$SKILL_DIR/app/ctl.sh" stop <session-dir>` (kills the detached
+  server by pid). The watcher exits on its own.
 - Sandbox temp dir: leave it, or `rm -rf` only if asked. Never delete repo work.
