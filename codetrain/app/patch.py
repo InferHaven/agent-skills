@@ -10,7 +10,11 @@ Special keys (processed, then removed):
   step_patch     : {index?, ...}  -> deep-merge ... into steps[index | active]
 Everything else is deep-merged into the session (dict -> recursive; else replace).
 
-Usage:  patch.py <session.json>      (JSON delta on stdin)
+Usage:  patch.py <session.json> ['<delta>']   (delta as an arg, else read on stdin)
+
+Passing the delta as an ARG lets the tutor run `bash ctl.sh patch <ws> '<delta>'` as
+one standalone command — which a single `Bash(bash .../ctl.sh:*)` allow-rule matches.
+A piped `printf … | ctl.sh patch` would prompt (Claude Code checks each pipe segment).
 """
 import json
 import os
@@ -31,7 +35,8 @@ def main():
         print("usage: patch.py <session.json>", file=sys.stderr)
         sys.exit(2)
     path = sys.argv[1]
-    delta = json.loads(sys.stdin.read() or "{}")
+    raw = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2].strip() else sys.stdin.read()
+    delta = json.loads(raw or "{}")
     with open(path, "r", encoding="utf-8") as f:
         s = json.load(f)
 

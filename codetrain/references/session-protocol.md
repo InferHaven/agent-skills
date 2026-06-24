@@ -25,20 +25,17 @@ do NOT hardcode `/root/...`; it differs per install).
 
 ## Launch (once per session, in the background)
 
-First check for a live server and reuse it (don't start a second):
+Reuse a live server if one's already up: **Read** `<workspace>/.tutor/url.txt` with the
+Read tool (allow-listed); if it exists and the URL answers, reuse it. Otherwise start
+one with a single standalone command:
 
 ```bash
-WS="<workspace>"
-if [ -f "$WS/.tutor/url.txt" ] && curl -s --max-time 1 "$(cat "$WS/.tutor/url.txt")/api/state" >/dev/null; then
-  echo "reuse $(cat "$WS/.tutor/url.txt")"
-else
-  bash "$SKILL_DIR/app/ctl.sh" serve "$WS"   # run with run_in_background: true
-fi
+bash "$SKILL_DIR/app/ctl.sh" serve "<workspace>"   # run with run_in_background: true
 ```
 
-Use `ctl.sh` (not raw `python3 …`/`kill …`) for **serve / watch / stop** — it's a
-single stable command form that can be allow-listed once in settings so live
-sessions never prompt (see "Frictionless permissions" below).
+Use `ctl.sh` (not raw `python3 …`/`kill …`) for **sandbox / serve / watch / stop** — a
+single stable command form, allow-listed once so live sessions never prompt (see
+"Frictionless permissions"). Call it **standalone** — never inside a pipe / `;` / `$( )`.
 
 It prints `TUTOR_URL=http://127.0.0.1:PORT` (also written to `.tutor/url.txt`).
 Capture it and give the user the clickable link. Port auto-advances from 7341 if
@@ -61,21 +58,28 @@ rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
 
 ```json
 { "permissions": { "allow": [
-  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",   // serve/watch/patch/run/stop — the whole per-turn loop
-  "Read(//tmp/codetrain-*/**)",            // sandbox workspace
+  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",         // sandbox/serve/watch/patch/run/stop — the whole loop
+  "Read(//tmp/codetrain-*/**)",                  // sandbox workspace
   "Write(//tmp/codetrain-*/**)",
-  "Read(//<HOME>/.claude/codetrain/**)",   // learner profile + history
+  "Read(//<HOME>/.claude/codetrain/**)",         // learner profile + history
   "Write(//<HOME>/.claude/codetrain/**)",
-  "Bash(mktemp -d /tmp/codetrain-*)",      // sandbox creation
-  "Bash(git diff:*)"                       // repo-mode review / teach-on-diff (read-only)
+  "Read(//<HOME>/.claude/skills/codetrain/**)",  // the skill's own references the tutor reads
+  "Bash(mktemp -d /tmp/codetrain-*)",            // direct mktemp (ctl.sh sandbox also covers this)
+  "Bash(git diff:*)"                             // repo-mode review / teach-on-diff (read-only)
 ] } }
 ```
 
 This is a **scoped** allow-list, not a bypass — everything else still prompts, which is
-exactly what a team/enterprise security review wants. The dominant cost (the per-turn
-`ctl.sh watch` re-arm + `ctl.sh patch`) all routes through the single `ctl.sh` rule, so
-that one line removes most of the friction. If you rename or move the skill, re-run the
-installer so the path rule matches.
+exactly what a team/enterprise security review wants. If you rename or move the skill,
+re-run the installer so the path rule matches.
+
+**Invocation discipline (matters as much as the rules):** Claude Code checks *every*
+segment of a compound/piped command, so one non-listed segment makes the whole thing
+prompt. So: call `ctl.sh` **standalone** (never in `|`, `;`, `&&`, or `$( )`); pass the
+patch delta as an **arg** (`ctl.sh patch <ws> '<delta>'`, not `printf … | …`); do file
+I/O with the **Read/Write tools** (sandbox + profile + skill paths are listed), not bash
+`cat`/`echo`/heredocs; make the sandbox with `ctl.sh sandbox`; run a bash step via
+`ctl.sh run <ws>`. This is what actually keeps a live session prompt-free.
 
 ## The auto-review loop (default interactivity)
 
@@ -185,11 +189,15 @@ anytime; never refuse it. After handling, clear the inbox via the patch
 ## Updating cheaply — patch deltas (every turn)
 
 Do **not** Read + Write the whole `session.json` each turn — that's the main token
-sink. Pipe a small JSON **delta** instead:
+sink. Pass a small JSON **delta** as an argument to a single standalone command:
 
 ```bash
-printf '%s' '<delta-json>' | bash "$SKILL_DIR/app/ctl.sh" patch <workspace>
+bash "$SKILL_DIR/app/ctl.sh" patch <workspace> '<delta-json>'
 ```
+
+Pass the delta as an **arg**, not a `printf … | …` pipe — one standalone command the
+`ctl.sh` rule matches, so it never prompts (a pipe prompts: Claude Code checks each
+segment). Stdin still works if you give no arg.
 
 It deep-merges into the session. Special keys: `clear_inbox:true` → `inbox:[]`;
 `learned_append:"…"|[…]` → append to `learned`; `step_patch:{index?,…}` → merge into
@@ -256,10 +264,15 @@ Keep each turn cheap: **read the watcher output, not the whole file** (Read
 
 ## Sandbox mode
 
-1. `mktemp -d /tmp/codetrain-XXXXXX` → `<workspace>`.
-2. Scaffold a tiny project (a file or two + a test). Tell the user plainly: *this
-   is throwaway and touches none of your real files.*
-3. `git init` inside it if you want diffs to work like repo mode.
+1. `bash "$SKILL_DIR/app/ctl.sh" sandbox` → prints a fresh `/tmp/codetrain-*` workspace
+   (with `.tutor/`); use that as `<workspace>`. One standalone allow-listed command —
+   don't hand-roll `WS=$(mktemp …)`, which prompts.
+2. Scaffold a tiny project (a file or two + a test) by **writing the files with the
+   Write tool** — the `/tmp/codetrain-*` path is allow-listed, so this never prompts
+   (a bash `cat > file`/heredoc would). Tell the user plainly: *this is throwaway and
+   touches none of your real files.*
+3. `git init` inside it only if you actually need diffs (it prompts once — skip it for
+   non-diff lessons).
 
 Use sandbox for any request not tied to the current codebase (a random concept, a
 generic exercise) — even if the user happens to be inside a repo.

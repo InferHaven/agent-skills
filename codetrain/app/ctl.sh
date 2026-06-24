@@ -5,16 +5,24 @@
 # allow-listed once in settings.json (no per-turn permission prompts). It avoids
 # inline `ENV=… python3 …` prefixes, which break Bash permission prefix-matching.
 #
+#   ctl.sh sandbox                     # make a throwaway /tmp/codetrain-* workspace; prints its path
 #   ctl.sh serve <workspace>           # start the UI server (run in background)
 #   ctl.sh watch <workspace> [iters]   # arm the event watcher (run in background)
 #   ctl.sh stop  <workspace>           # stop the server for this workspace
-#   ctl.sh patch <workspace>           # merge a JSON delta (on stdin) into session.json
+#   ctl.sh patch <workspace> ['<delta>'] # merge a JSON delta (arg or stdin) into session.json
 #   ctl.sh run   <workspace>           # run the active step's tests.cmd / submitted file
+#
+# Call each command STANDALONE (never inside a pipe, `;`, `&&`, or `$( )`) so one
+# `Bash(bash .../ctl.sh:*)` allow-rule covers the whole live loop prompt-free.
 set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cmd="${1:-}"; ws="${2:-}"
 
 case "$cmd" in
+  sandbox)
+    ws="$(mktemp -d /tmp/codetrain-XXXXXX)" || { echo "mktemp failed" >&2; exit 1; }
+    mkdir -p "$ws/.tutor"
+    printf '%s\n' "$ws" ;;
   serve)
     [ -n "$ws" ] || { echo "usage: ctl.sh serve <workspace>" >&2; exit 2; }
     TUTOR_SESSION="$ws/.tutor/session.json" TUTOR_WORKSPACE="$ws" exec python3 "$HERE/server.py" ;;
@@ -26,8 +34,8 @@ case "$cmd" in
     [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null && echo "stopped $pid" || echo "no server running"
     ;;
   patch)
-    [ -n "$ws" ] || { echo "usage: ctl.sh patch <workspace>  (JSON delta on stdin)" >&2; exit 2; }
-    exec python3 "$HERE/patch.py" "$ws/.tutor/session.json" ;;
+    [ -n "$ws" ] || { echo "usage: ctl.sh patch <workspace> ['<json-delta>']  (delta as arg, else stdin)" >&2; exit 2; }
+    exec python3 "$HERE/patch.py" "$ws/.tutor/session.json" "${3-}" ;;
   run)
     # Run the active step's declared tests.cmd, else `sh <submitted file>`, in the
     # workspace. Only runs the lesson's own command / the user's own file — never
@@ -54,5 +62,5 @@ PY
       echo "(nothing to run for this step)"
     fi
     ;;
-  *) echo "usage: ctl.sh {serve|watch|stop|patch|run} <workspace>" >&2; exit 2 ;;
+  *) echo "usage: ctl.sh {sandbox|serve|watch|stop|patch|run} <workspace>" >&2; exit 2 ;;
 esac

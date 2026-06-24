@@ -483,6 +483,9 @@ body {
 }
 
 /* ---------- progress drawer ---------- */
+/* `hidden` must beat the display:flex/fixed below (author CSS otherwise overrides
+   the UA `[hidden]{display:none}`, leaving the drawer stuck open on load). */
+.drawer[hidden], .drawer-backdrop[hidden] { display: none !important; }
 .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; }
 .drawer {
   position: fixed; top: 0; right: 0; height: 100%; width: min(420px, 92vw); z-index: 301;

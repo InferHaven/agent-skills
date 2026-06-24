@@ -34,8 +34,9 @@ import sys
 def scoped_rules(skill_dir, home):
     """The complete, minimal allow-list for a prompt-free CodeTrain session."""
     cdir = (home.rstrip("/") + "/.claude/codetrain").lstrip("/")
+    sdir = skill_dir.lstrip("/")
     return [
-        # serve / watch / patch / run / stop — the entire per-turn loop goes
+        # sandbox / serve / watch / patch / run / stop — the entire per-turn loop goes
         # through this one stable entry point (that is why ctl.sh exists).
         "Bash(bash %s/app/ctl.sh:*)" % skill_dir,
         # throwaway sandbox workspace
@@ -44,7 +45,9 @@ def scoped_rules(skill_dir, home):
         # cross-session learner profile + history (local-only data)
         "Read(//%s/**)" % cdir,
         "Write(//%s/**)" % cdir,
-        # sandbox creation
+        # the skill's own files — the tutor reads references/ at session start
+        "Read(//%s/**)" % sdir,
+        # sandbox creation (ctl.sh sandbox also covers it; kept for a direct mktemp)
         "Bash(mktemp -d /tmp/codetrain-*)",
         # repo-mode review + teach-on-diff (read-only)
         "Bash(git diff:*)",

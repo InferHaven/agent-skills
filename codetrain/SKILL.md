@@ -125,11 +125,12 @@ see `references/teach-on-diff.md`.
 
 ## The tutoring loop
 
-1. **Set up** — read `profile.json` first (cheap; tailors + greets a returning
-   learner). Pick the mode, create the workspace + a `phase:"intake"` session, start
-   the server with `bash $SKILL_DIR/app/ctl.sh serve <workspace>` (background; reuse a
-   live one), give the user the `TUTOR_URL`, then **arm the watcher**
-   (`ctl.sh watch <workspace>`, background).
+1. **Set up** — read `profile.json` first **with the Read tool** (cheap; tailors +
+   greets a returning learner). Pick the mode; make the workspace (sandbox →
+   `bash $SKILL_DIR/app/ctl.sh sandbox`), write a `phase:"intake"` session **with the
+   Write tool**, start the server with `bash $SKILL_DIR/app/ctl.sh serve <workspace>`
+   (background; reuse a live one), give the user the `TUTOR_URL`, then **arm the
+   watcher** (`ctl.sh watch <workspace>`, background).
 2. **Intake wakes you** (`NEW_EVENT:INTAKE`) — now **author the whole lesson once** as
    `steps:[ … ]` (each: concept + *why*, one task, 1–3 `hints`, `file`, `lang`,
    `starter_code`, and `tests.cases` for py/js). Set `phase:"learning"`,
@@ -158,9 +159,10 @@ Syntax-highlighted editor (Prism) + instant **Run**:
 **Token discipline — follow this, it's the difference between cheap and costly:**
 - **Author the lesson ONCE** as `steps: [ … ]` at session creation. After that,
   change only deltas — never re-emit the whole file.
-- **Update via patch, never full read+write:** pipe a small JSON delta to
-  `bash $SKILL_DIR/app/ctl.sh patch <workspace>` (delta on stdin). You emit only what
-  changed and do **not** Read or Write `session.json`. (Delta examples: protocol.)
+- **Update via patch, never full read+write:** pass a small JSON delta as an **arg** to
+  `bash $SKILL_DIR/app/ctl.sh patch <workspace> '<delta>'` (one standalone command — not
+  a `printf … | …` pipe, which prompts). You emit only what changed and do **not** Read
+  or Write `session.json`. (Delta examples: protocol.)
 - **Read the watcher output, not the file.** Read `session.json` only if the payload
   truly wasn't enough.
 - **Terse terminal during a live session:** reply ≤1 short status line ("step 1 ✓ —
@@ -168,6 +170,9 @@ Syntax-highlighted editor (Prism) + instant **Run**:
 - If `client_tests` all passed, **trust it — don't re-run**; brief feedback + advance.
 - **≤2–3 tool calls/turn** (one `ctl.sh patch`, one `ctl.sh watch` re-arm, plus
   `ctl.sh run` only when needed); **never poll**; **one watcher at a time**.
+- **Keep it prompt-free:** call `ctl.sh` **standalone** (never in a pipe / `;` / `$( )`);
+  do file I/O with the **Read/Write tools**, not bash `cat`/`echo`/heredocs (sandbox,
+  profile, and skill paths are allow-listed); make the sandbox via `ctl.sh sandbox`.
 
 The **Ask** button sends a `question` — answer as a `comment` (patch) + re-arm.
 **End session** sends `end` — wrap up (see Ending). **Idle:** on `TIMEOUT`, re-arm
