@@ -258,6 +258,7 @@ class Handler(BaseHTTPRequestHandler):
             if t == "intake":
                 s["level"] = ev.get("level")
                 s["goal"] = ev.get("goal")
+                s["guidance"] = ev.get("guidance") or "balanced"
                 s["tutor_status"] = "thinking"
             elif t == "submit":
                 code = ev.get("code", "")

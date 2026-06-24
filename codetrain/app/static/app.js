@@ -369,25 +369,35 @@ function buildIntake(s) {
   el.innerHTML = `
     <p class="eyebrow">before we start</p>
     <h1 class="step-head">Let's tune this to you.</h1>
-    <p class="lead">${esc(s.intro || "Pick where you're at and what you want to get out of this. Your tutor shapes the steps around it.")}</p>
-    <div class="field"><label>How comfortable are you here?</label>
-      <div class="chips" id="lvl">
-        <button class="chip" data-v="beginner">Beginner</button>
-        <button class="chip" data-v="intermediate">Intermediate</button>
-        <button class="chip" data-v="advanced">Advanced</button>
+    <p class="lead">${esc(s.intro || "Pick where you're at and how much help you want. Your tutor shapes the steps around it — you always write the code.")}</p>
+    <div class="field"><label id="lvl-l">How comfortable are you here?</label>
+      <div class="chips" id="lvl" role="group" aria-labelledby="lvl-l">
+        <button class="chip" data-v="beginner" aria-pressed="false">Beginner</button>
+        <button class="chip" data-v="intermediate" aria-pressed="false">Intermediate</button>
+        <button class="chip" data-v="advanced" aria-pressed="false">Advanced</button>
+      </div></div>
+    <div class="field"><label id="gd-l">How much help? <span class="sub">hints never hand you the answer</span></label>
+      <div class="chips" id="gd" role="group" aria-labelledby="gd-l">
+        <button class="chip" data-v="minimal" aria-pressed="false">Minimal</button>
+        <button class="chip on" data-v="balanced" aria-pressed="true">Balanced</button>
+        <button class="chip" data-v="guided" aria-pressed="false">Guided</button>
       </div></div>
     <div class="field"><label>What do you want to walk away understanding?</label>
       <textarea id="goal" placeholder="e.g. how this auth middleware actually verifies a token"></textarea></div>
     <button class="btn primary" id="begin">Begin →</button>`;
-  let level = null;
-  el.querySelectorAll("#lvl .chip").forEach((c) => c.addEventListener("click", () => {
-    el.querySelectorAll("#lvl .chip").forEach((x) => x.classList.remove("on")); c.classList.add("on"); level = c.dataset.v;
-  }));
+  let level = null, guidance = "balanced";
+  const wire = (groupId, set) => el.querySelectorAll("#" + groupId + " .chip").forEach((c) =>
+    c.addEventListener("click", () => {
+      el.querySelectorAll("#" + groupId + " .chip").forEach((x) => { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
+      c.classList.add("on"); c.setAttribute("aria-pressed", "true"); set(c.dataset.v);
+    }));
+  wire("lvl", (v) => { level = v; });
+  wire("gd", (v) => { guidance = v; });
   $("begin").addEventListener("click", () => {
     const goal = $("goal").value.trim();
     if (!level) return toast("Pick a level first ☝️", 2500);
     if (!goal) return toast("Tell your tutor what you're after.", 2500);
-    $("begin").disabled = true; post({ type: "intake", level, goal });
+    $("begin").disabled = true; post({ type: "intake", level, goal, guidance });
     toast("Got it — building your first step…");
   });
   showWork(false);
