@@ -5,12 +5,12 @@
 # allow-listed once in settings.json (no per-turn permission prompts). It avoids
 # inline `ENV=… python3 …` prefixes, which break Bash permission prefix-matching.
 #
-#   ctl.sh sandbox                     # make a throwaway /tmp/codetrain-* workspace; prints its path
-#   ctl.sh serve <workspace>           # start the UI server (run in background)
-#   ctl.sh watch <workspace> [iters]   # arm the event watcher (run in background)
-#   ctl.sh stop  <workspace>           # stop the server for this workspace
-#   ctl.sh patch <workspace> ['<delta>'] # merge a JSON delta (arg or stdin) into session.json
-#   ctl.sh run   <workspace>           # run the active step's tests.cmd / submitted file
+#   ctl.sh sandbox                         # make a throwaway /tmp/codetrain-* dir; prints its path
+#   ctl.sh serve <session-dir> [code-root] # start the UI server, DETACHED (survives the session)
+#   ctl.sh watch <session-dir> [iters]     # arm the event watcher (run in background)
+#   ctl.sh stop  <session-dir>             # stop the server for this session
+#   ctl.sh patch <session-dir>             # apply .tutor/patch.json (write it with the Write tool)
+#   ctl.sh run   <session-dir>             # run the active step's tests.cmd / submitted file
 #
 # Call each command STANDALONE (never inside a pipe, `;`, `&&`, or `$( )`) so one
 # `Bash(bash .../ctl.sh:*)` allow-rule covers the whole live loop prompt-free.
@@ -24,8 +24,18 @@ case "$cmd" in
     mkdir -p "$ws/.tutor"
     printf '%s\n' "$ws" ;;
   serve)
-    [ -n "$ws" ] || { echo "usage: ctl.sh serve <workspace>" >&2; exit 2; }
-    TUTOR_SESSION="$ws/.tutor/session.json" TUTOR_WORKSPACE="$ws" exec python3 "$HERE/server.py" ;;
+    # <ws> = session-dir (.tutor state lives here — keep it under /tmp so it's allow-listed).
+    # Optional [code-root] is where submitted code is written (repo mode); defaults to <ws>.
+    # Detached (setsid + nohup) so the page outlives the Claude session that started it.
+    [ -n "$ws" ] || { echo "usage: ctl.sh serve <session-dir> [code-root]" >&2; exit 2; }
+    code="${3:-$ws}"
+    mkdir -p "$ws/.tutor"
+    rm -f "$ws/.tutor/url.txt"
+    TUTOR_SESSION="$ws/.tutor/session.json" TUTOR_WORKSPACE="$code" \
+      setsid nohup python3 "$HERE/server.py" >"$ws/.tutor/serve.log" 2>&1 </dev/null &
+    for _ in $(seq 1 40); do [ -f "$ws/.tutor/url.txt" ] && break; sleep 0.1; done
+    url="$(cat "$ws/.tutor/url.txt" 2>/dev/null || true)"
+    [ -n "$url" ] && echo "TUTOR_URL=$url" || { echo "server failed to start; see $ws/.tutor/serve.log" >&2; exit 1; } ;;
   watch)
     [ -n "$ws" ] || { echo "usage: ctl.sh watch <workspace> [iters]" >&2; exit 2; }
     exec bash "$HERE/watch.sh" "$ws/.tutor/session.json" "${3:-900}" ;;
@@ -34,7 +44,9 @@ case "$cmd" in
     [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null && echo "stopped $pid" || echo "no server running"
     ;;
   patch)
-    [ -n "$ws" ] || { echo "usage: ctl.sh patch <workspace> ['<json-delta>']  (delta as arg, else stdin)" >&2; exit 2; }
+    # Applies <ws>/.tutor/patch.json (the tutor writes it with the Write tool — robust,
+    # no shell quoting, no prompt). Falls back to a delta arg / stdin for back-compat.
+    [ -n "$ws" ] || { echo "usage: ctl.sh patch <session-dir>  (write .tutor/patch.json first)" >&2; exit 2; }
     exec python3 "$HERE/patch.py" "$ws/.tutor/session.json" "${3-}" ;;
   run)
     # Run the active step's declared tests.cmd, else `sh <submitted file>`, in the

@@ -39,12 +39,14 @@ def scoped_rules(skill_dir, home):
         # sandbox / serve / watch / patch / run / stop — the entire per-turn loop goes
         # through this one stable entry point (that is why ctl.sh exists).
         "Bash(bash %s/app/ctl.sh:*)" % skill_dir,
-        # throwaway sandbox workspace
+        # throwaway sandbox workspace (Read/Write/Edit — the tutor writes patch.json + scaffolds here)
         "Read(//tmp/codetrain-*/**)",
         "Write(//tmp/codetrain-*/**)",
-        # cross-session learner profile + history (local-only data)
+        "Edit(//tmp/codetrain-*/**)",
+        # cross-session learner profile + history (local-only data; saved via the Edit/Write tools)
         "Read(//%s/**)" % cdir,
         "Write(//%s/**)" % cdir,
+        "Edit(//%s/**)" % cdir,
         # the skill's own files — the tutor reads references/ at session start
         "Read(//%s/**)" % sdir,
         # sandbox creation (ctl.sh sandbox also covers it; kept for a direct mktemp)

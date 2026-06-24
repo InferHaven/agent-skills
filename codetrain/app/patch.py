@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 """CodeTrain — apply a small JSON delta to session.json.
 
-Lets the tutor update a session with only the CHANGED fields (read on stdin),
-instead of reading + rewriting the whole file each turn — the main token saver.
+Lets the tutor update a session with only the CHANGED fields, instead of reading +
+rewriting the whole file each turn — the main token saver.
+
+The delta is read from (in priority order):
+  1. <session-dir>/patch.json  — the tutor writes this with the Write tool, then runs
+     `bash ctl.sh patch <ws>`. This is the robust path: no shell quoting (JSON with
+     `(`, quotes, or newlines just works) and no permission prompt. patch.json is
+     deleted after a successful apply.
+  2. argv[2]                   — a delta passed as an arg (fragile with quotes; back-compat).
+  3. stdin                     — a piped delta (back-compat).
 
 Special keys (processed, then removed):
-  clear_inbox    : true          -> set inbox = []
-  learned_append : str | [str]   -> append to learned[]
-  step_patch     : {index?, ...}  -> deep-merge ... into steps[index | active]
-Everything else is deep-merged into the session (dict -> recursive; else replace).
+  clear_inbox    : true           -> set inbox = []
+  learned_append : str | [str]    -> append to learned[]
+  step_patch     : {index?, ...}   -> deep-merge ... into steps[index | active]
+Dotted top-level keys are expanded ("progress.step": 1 -> {"progress": {"step": 1}}),
+so a model that flattens keys still patches correctly. Everything else is deep-merged
+(dict -> recursive; else replace).
 
-Usage:  patch.py <session.json> ['<delta>']   (delta as an arg, else read on stdin)
-
-Passing the delta as an ARG lets the tutor run `bash ctl.sh patch <ws> '<delta>'` as
-one standalone command — which a single `Bash(bash .../ctl.sh:*)` allow-rule matches.
-A piped `printf … | ctl.sh patch` would prompt (Claude Code checks each pipe segment).
+Usage:  patch.py <session.json> ['<delta>']
 """
 import json
 import os
@@ -30,13 +36,43 @@ def merge(dst, src):
     return dst
 
 
+def expand_dotted(d):
+    """{"a.b": 1, "x": 2} -> {"a": {"b": 1}, "x": 2}  (top-level dotted keys only)."""
+    out = {}
+    for k, v in d.items():
+        if isinstance(k, str) and "." in k:
+            cur = out
+            parts = k.split(".")
+            for p in parts[:-1]:
+                nxt = cur.get(p)
+                if not isinstance(nxt, dict):
+                    nxt = {}
+                    cur[p] = nxt
+                cur = nxt
+            cur[parts[-1]] = v
+        else:
+            out[k] = v
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
-        print("usage: patch.py <session.json>", file=sys.stderr)
+        print("usage: patch.py <session.json> ['<delta>']", file=sys.stderr)
         sys.exit(2)
     path = sys.argv[1]
-    raw = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2].strip() else sys.stdin.read()
+    patch_file = os.path.join(os.path.dirname(path), "patch.json")
+
+    used_file = False
+    if os.path.exists(patch_file):
+        with open(patch_file, "r", encoding="utf-8") as f:
+            raw = f.read()
+        used_file = True
+    elif len(sys.argv) > 2 and sys.argv[2].strip():
+        raw = sys.argv[2]
+    else:
+        raw = sys.stdin.read()
     delta = json.loads(raw or "{}")
+
     with open(path, "r", encoding="utf-8") as f:
         s = json.load(f)
 
@@ -58,12 +94,17 @@ def main():
         elif isinstance(s.get("step"), dict):
             merge(s["step"], sp)
 
-    merge(s, delta)
+    merge(s, expand_dotted(delta))
 
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(s, f, indent=2)
     os.replace(tmp, path)
+    if used_file:
+        try:
+            os.remove(patch_file)
+        except OSError:
+            pass
     print("patched")
 
 
