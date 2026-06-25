@@ -15,7 +15,9 @@ The delta is read from (in priority order):
 Special keys (processed, then removed):
   clear_inbox    : true           -> set inbox = []
   learned_append : str | [str]    -> append to learned[]
-  step_patch     : {index?, ...}   -> deep-merge ... into steps[index | active]
+  steps_append   : {…} | [{…}]    -> append new step(s) to steps[] (lazy authoring)
+  step_patch     : {index?, ...}   -> merge into steps[index | active]; APPENDS if the
+                                      index is out of range (never silently dropped)
 Dotted top-level keys are expanded ("progress.step": 1 -> {"progress": {"step": 1}}),
 so a model that flattens keys still patches correctly. Everything else is deep-merged
 (dict -> recursive; else replace).
@@ -82,17 +84,26 @@ def main():
         add = delta.pop("learned_append")
         s.setdefault("learned", [])
         s["learned"].extend(add if isinstance(add, list) else [add])
+    if "steps_append" in delta:
+        add = delta.pop("steps_append")
+        s.setdefault("steps", [])
+        if isinstance(s["steps"], list):
+            s["steps"].extend(add if isinstance(add, list) else [add])
     if "step_patch" in delta:
         sp = dict(delta.pop("step_patch"))
         idx = sp.pop("index", None)
         steps = s.get("steps")
-        if isinstance(steps, list) and steps:
+        if isinstance(steps, list):
             if idx is None:
                 idx = ((s.get("progress") or {}).get("step", 1) or 1) - 1
             if 0 <= idx < len(steps):
                 merge(steps[idx], sp)
+            else:                       # out of range -> append; NEVER silently drop
+                steps.append(sp)
         elif isinstance(s.get("step"), dict):
             merge(s["step"], sp)
+        else:
+            s["steps"] = [sp]
 
     merge(s, expand_dotted(delta))
 
@@ -105,7 +116,7 @@ def main():
             os.remove(patch_file)
         except OSError:
             pass
-    print("patched")
+    print("patched (steps=%d)" % len(s.get("steps") or []))
 
 
 if __name__ == "__main__":

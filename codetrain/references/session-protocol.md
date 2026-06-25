@@ -206,9 +206,9 @@ with `(`, quotes, or newlines just works: no shell quoting, no prompt. Do **not*
 keys are expanded (`"progress.step": 2`). (An arg / stdin still work as a fallback.)
 
 It deep-merges into the session. Special keys: `clear_inbox:true` → `inbox:[]`;
-`learned_append:"…"|[…]` → append to `learned`; `step_patch:{index?,…}` → merge into
-`steps[index|active]` (per-step `tests` results / hint tweaks). Emit ONLY the delta —
-you never read the file:
+`learned_append:"…"|[…]` → append to `learned`; `steps_append:{…}|[{…}]` → append new step(s)
+(lazy authoring); `step_patch:{index?,…}` → merge into `steps[index|active]` (appends if the
+index is out of range — an add never silently drops). Emit ONLY the delta:
 
 ```jsonc
 // advance after a pass
@@ -298,6 +298,8 @@ load `history/` into context unless resuming a specific past session.
 - Write the final recap first: `phase:"done"`, celebratory `title`, `summary_md`,
   full `learned` list — so the last screen is the summary (confetti fires in the UI).
 - **Save progress:** append a `history/` summary + update `profile.json` (2 small writes).
-- Stop the server: `bash "$SKILL_DIR/app/ctl.sh" stop <session-dir>` (kills the detached
-  server by pid). The watcher exits on its own.
+- **Do NOT stop the server** — it self-exits ~90s after the browser renders `done`, so the
+  recap + confetti show. (Stopping it the instant you patch `done` races the poll and freezes
+  the page on "reviewing".) The watcher exits on its own. (`ctl.sh stop <session-dir>` remains
+  for an explicit early teardown.)
 - Sandbox temp dir: leave it, or `rm -rf` only if asked. Never delete repo work.

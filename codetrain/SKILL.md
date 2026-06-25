@@ -110,11 +110,14 @@ bash "$SKILL_DIR/app/ctl.sh" patch <session-dir>
 It deep-merges the delta and deletes `patch.json`. Use the **file** — do **not** pipe
 `printf … | …` or pass the JSON as a shell arg; both break on `(`/quotes/newlines and
 prompt. Special keys: `clear_inbox:true` → `inbox:[]`; `learned_append:"…"|[…]` → append to
-`learned`; `step_patch:{index?,…}` → merge into `steps[index|active]`. Dotted keys are fine
+`learned`; `steps_append:{…}|[{…}]` → append new step(s) (lazy); `step_patch:{index?,…}` → merge into
+`steps[index|active]` (appends if the index is out of range). Dotted keys are fine
 (`"progress.step": 2`). Deltas:
 
 ```jsonc
-// advance after a pass
+// advance + author the next step (lazy — cheapest)
+{"progress":{"step":2},"steps_append":{ /* …step 2… */ },"feedback":{"status":"pass","md":"…"},"learned_append":"…","clear_inbox":true,"tutor_status":"listening"}
+// advance after a pass (steps authored upfront)
 {"progress":{"step":2},"feedback":{"status":"pass","md":"…"},"learned_append":"…","clear_inbox":true,"tutor_status":"listening"}
 // retry (same step)              {"feedback":{"status":"retry","md":"…"},"clear_inbox":true,"tutor_status":"listening"}
 // answer an Ask (keep the step)  {"feedback":{"status":"comment","md":"…"},"clear_inbox":true,"tutor_status":"listening"}
@@ -136,18 +139,20 @@ The only full `session.json` Write is at creation (authoring `steps[]`).
    session ends. Give the user the link, then **arm the watcher**:
    `bash $SKILL_DIR/app/ctl.sh watch <session-dir>` (run_in_background). Reuse a live server
    (its `url.txt`) instead of starting a second.
-2. **Intake wakes you** (`NEW_EVENT:INTAKE`, carries `level` + `goal` + `guidance`).
-   **Author the whole lesson once** as `steps:[…]`, sized to `level` + `guidance` (see
-   Guidance). Set `phase:"learning"`, `progress.step:1`. Repo → seed `starter_code` from the
-   real file. Patch + **re-arm the watcher**.
+2. **Intake wakes you** (`NEW_EVENT:INTAKE`, carries `level` + `goal` + `guidance`). Author
+   the lesson, sized to `level` + `guidance` (see Guidance). **Cheapest: author step 1 now**,
+   then **append each next step as the user advances** (`steps_append` + bump `progress.step`
+   — don't generate steps they may never reach); or author all `steps:[…]` upfront if short.
+   Set `phase:"learning"`, `progress.step:1`. Repo → seed `starter_code`. Patch + **re-arm**.
 3. **On wake**, the payload starts `NEW_EVENT:TYPE` and carries the submitted code +
    `client_tests` (so you needn't read the file). **submit:** review the latest; patch
    `feedback` (+ per-step results via `step_patch`), `learned_append`, `clear_inbox`.
    **question:** patch `feedback` (`comment`), keep the step. **end:** wrap up (Ending).
    **resume:** `tutor_status:"listening"`, welcome back.
-4. **Advance or retry.** Retry = patch feedback only. Advance = `progress.step` + feedback +
-   `learned_append`. After a pass, *sometimes* ask them to explain **why** first. **Re-arm
-   the watcher every turn** — that's what wakes you when they act.
+4. **Advance or retry.** Retry = patch feedback only. Advance = bump `progress.step` +
+   feedback + `learned_append`, and if authoring lazily **`steps_append` the next step** so it
+   exists when the page renders it. After a pass, *sometimes* ask them to explain **why**
+   first. **Re-arm the watcher every turn** — that's what wakes you when they act.
 5. **Done** → patch `phase:"done"` + `summary_md` (Ending).
 
 ## Guidance (from intake) + difficulty
@@ -234,9 +239,11 @@ Triggered by goal met / user stops / **End session** (`end`):
 3. **Save progress** (2 small writes): append `history/<date>-<slug>.md`; update
    `profile.json` (totals, streak by date, strengths; reschedule reviewed gaps + log new ones —
    `references/spaced-repetition.md`).
-4. Stop the server: `bash $SKILL_DIR/app/ctl.sh stop <session-dir>` (kills the detached server
-   by pid). Repo code is already in the working tree — commit as usual; **never auto-commit,
-   never delete repo work**. Sandbox dir: leave it, or `rm -rf` only if asked.
+4. **Do NOT stop the server** — leave it running so the recap + confetti render; it
+   **self-exits ~90s** after the browser shows the done screen. (Stopping it the instant you
+   patch `done` races the browser's poll and freezes the page on "reviewing".) Repo code is
+   already in the working tree — commit as usual; **never auto-commit, never delete repo
+   work**. Sandbox dir: leave it, or `rm -rf` only if asked.
 
 ## Checkpoints (proactive, opt-in, unobtrusive)
 

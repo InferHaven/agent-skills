@@ -41,6 +41,21 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Lock()
 
+_DONE_GRACE = 90          # seconds to keep serving `done` (recap + confetti), then self-exit
+_done_timer = None
+
+
+def _arm_done_shutdown():
+    """Once the browser has seen phase:done, keep serving briefly so the recap +
+    confetti render, then exit so the detached server doesn't linger. Idempotent.
+    (Stopping the server the instant `done` is patched races this poll and freezes
+    the page on "reviewing" — let the server retire itself instead.)"""
+    global _done_timer
+    if _done_timer is None:
+        _done_timer = threading.Timer(_DONE_GRACE, lambda: os._exit(0))
+        _done_timer.daemon = True
+        _done_timer.start()
+
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
@@ -220,6 +235,8 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/state":
             with LOCK:
                 data = load_session(self.session_path)
+            if data.get("phase") == "done":
+                _arm_done_shutdown()
             return self._send(200, json.dumps(data))
         if p == "/api/runtime":
             return self._send(200, json.dumps({"bash": bool(RUNTIME and RUN_IMAGE), "runtime": RUNTIME}))
