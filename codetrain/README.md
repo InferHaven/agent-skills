@@ -27,7 +27,7 @@ and explains what changed. It never dumps the solution on you.
   code too. Hints are local and never cost a turn.
 - **Ask** a question anytime (no code needed), **Run** with `⌘/Ctrl+↵`, and **End
   session** (two-click, can't misfire) for a celebratory recap + confetti.
-- **Remembers you:** a small local profile (`~/.claude/codetrain/profile.json`)
+- **Remembers you:** a small local profile (`~/.codetrain/profile.json`)
   tracks your level, streak, and recurring gaps — tailoring future sessions and
   resurfacing things you struggled with (spaced repetition). One small read at the
   start, two small writes at the end; no token bloat.
@@ -86,7 +86,7 @@ Claude launches the UI and prints a `http://127.0.0.1:PORT` link. Open it and go
 - Server binds to **loopback only** (`127.0.0.1`). Use SSH forwarding remotely.
 - It **never executes user code**; tests run only when Claude explicitly runs them.
 - File writes are **path-traversal guarded** to the session workspace.
-- Progress is stored **locally** under `~/.claude/codetrain/` (profile + session
+- Progress is stored **locally** under `~/.codetrain/` (profile + session
   summaries) — never uploaded, no secrets.
 - **No external network calls** — the UI, fonts (self-hosted, OFL), and syntax
   highlighter are all vendored; nothing phones home and it works fully offline.

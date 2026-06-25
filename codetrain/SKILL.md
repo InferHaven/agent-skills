@@ -40,7 +40,7 @@ allow-list the user runs once). Other references, loaded only when relevant:
 ## Memory & progress (token-cheap)
 
 CodeTrain remembers the learner across sessions in small files under
-`$HOME/.claude/codetrain/`: `profile.json` (compact — languages+level, goals, strengths,
+`$HOME/.codetrain/`: `profile.json` (compact — languages+level, goals, strengths,
 **scheduled gaps**, notes, streak, totals) and `history/<date>-<slug>.md` (one summary
 per finished session).
 

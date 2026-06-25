@@ -308,6 +308,13 @@ function updateHeader(s) {
   const st = s.tutor_status || "listening";
   if (st !== cache.statusS) { $("status").dataset.s = st; cache.statusS = st; }
   setText($("status-label"), STATUS_LABEL[st] || "ready");
+  const working = $("working");
+  if (st === "thinking") {
+    setText($("working-msg"), (s.phase === "intake" || !(s.steps && s.steps.length)) ? "Building your lesson…" : "Reviewing your code…");
+    working.hidden = false;
+  } else {
+    working.hidden = true;
+  }
   if (s.mode && s.mode !== cache.badge) { const b = $("mode-badge"); b.hidden = false; b.textContent = s.mode; b.className = "badge " + s.mode; cache.badge = s.mode; }
 }
 function updateRail(s) {

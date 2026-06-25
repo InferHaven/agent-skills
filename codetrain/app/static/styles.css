@@ -519,3 +519,14 @@ body {
 .pg-hist { display: flex; flex-direction: column; gap: 10px; }
 .pg-hist .h-date { color: var(--ink-faint); font-family: var(--mono); font-size: 0.72rem; }
 .pg-hist > div > div:last-child { font-size: 0.88rem; color: var(--ink-soft); }
+
+/* "tutor working" indicator — the animated logo while a turn is in flight */
+.working {
+  position: fixed; left: 50%; top: 72px; transform: translateX(-50%);
+  align-items: center; gap: 10px; z-index: 250;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 999px;
+  padding: 6px 16px 6px 8px; box-shadow: var(--shadow);
+  color: var(--ink-soft); font-size: 0.86rem;
+}
+.working:not([hidden]) { display: flex; }   /* `hidden` wins by default; show only when unset */
+.working-logo { width: 28px; height: 28px; display: block; }

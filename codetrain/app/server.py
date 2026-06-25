@@ -61,6 +61,7 @@ CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
     ".js": "application/javascript; charset=utf-8",
     ".woff2": "font/woff2",
+    ".svg": "image/svg+xml",
 }
 
 
@@ -99,9 +100,12 @@ def save_session(path, data):
 def read_profile():
     """Read the local learner profile + a recent-history index (read-only).
 
-    Touches only ~/.claude/codetrain — never executes anything. Powers the UI's
-    Progress drawer; the browser fetches it on demand (no tutor turn, no tokens)."""
-    base = os.path.join(os.path.expanduser("~"), ".claude", "codetrain")
+    Touches only ~/.codetrain — never executes anything. Powers the UI's Progress
+    drawer; the browser fetches it on demand (no tutor turn, no tokens)."""
+    home = os.path.expanduser("~")
+    base = os.path.join(home, ".codetrain")
+    if not os.path.isdir(base) and os.path.isdir(os.path.join(home, ".claude", "codetrain")):
+        base = os.path.join(home, ".claude", "codetrain")   # legacy location (pre-relocation)
     prof = {}
     try:
         with open(os.path.join(base, "profile.json"), "r", encoding="utf-8") as f:

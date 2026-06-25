@@ -18,6 +18,13 @@ command -v python3 >/dev/null 2>&1 || {
 
 mkdir -p "$DEST_DIR"
 
+# One-time: relocate learner data out of ~/.claude. Claude Code special-cases writes to
+# its own config dir, so they prompt even when allow-listed. New home: ~/.codetrain.
+if [ -d "$HOME/.claude/codetrain" ] && [ ! -e "$HOME/.codetrain" ]; then
+  mv "$HOME/.claude/codetrain" "$HOME/.codetrain" \
+    && echo "Moved learner data: ~/.claude/codetrain -> ~/.codetrain"
+fi
+
 # Refuse to clobber a symlink (author's dev setup) unless asked.
 if [ -L "$DEST" ]; then
   echo "note: $DEST is a symlink; leaving it as-is (you're running from the source repo)."

@@ -19,8 +19,8 @@ do NOT hardcode `/root/...`; it differs per install).
 | Session state | `<workspace>/.tutor/session.json` |
 | Discovery / teardown | `<workspace>/.tutor/url.txt`, `<workspace>/.tutor/server.pid` |
 | Code the user edits | `<workspace>/<step.file>` |
-| Learner profile | `$HOME/.claude/codetrain/profile.json` (small, cross-session) |
-| Session history | `$HOME/.claude/codetrain/history/<date>-<slug>.md` |
+| Learner profile | `$HOME/.codetrain/profile.json` (small, cross-session) |
+| Session history | `$HOME/.codetrain/history/<date>-<slug>.md` |
 
 `<workspace>` = the git repo root (repo mode) or `/tmp/codetrain-XXXX` (sandbox).
 
@@ -63,9 +63,9 @@ rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
   "Read(//tmp/codetrain-*/**)",                  // sandbox + session state + patch.json
   "Write(//tmp/codetrain-*/**)",
   "Edit(//tmp/codetrain-*/**)",
-  "Read(//<HOME>/.claude/codetrain/**)",         // learner profile + history
-  "Write(//<HOME>/.claude/codetrain/**)",
-  "Edit(//<HOME>/.claude/codetrain/**)",
+  "Read(//<HOME>/.codetrain/**)",         // learner profile + history
+  "Write(//<HOME>/.codetrain/**)",
+  "Edit(//<HOME>/.codetrain/**)",
   "Read(//<HOME>/.claude/skills/codetrain/**)",  // the skill's own references the tutor reads
   "Bash(mktemp -d /tmp/codetrain-*)",            // direct mktemp (ctl.sh sandbox also covers this)
   "Bash(git diff:*)"                             // repo-mode review / teach-on-diff (read-only)

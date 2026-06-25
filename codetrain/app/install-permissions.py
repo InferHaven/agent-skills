@@ -33,7 +33,7 @@ import sys
 
 def scoped_rules(skill_dir, home):
     """The complete, minimal allow-list for a prompt-free CodeTrain session."""
-    cdir = (home.rstrip("/") + "/.claude/codetrain").lstrip("/")
+    cdir = (home.rstrip("/") + "/.codetrain").lstrip("/")
     sdir = skill_dir.lstrip("/")
     return [
         # sandbox / serve / watch / patch / run / stop — the entire per-turn loop goes
