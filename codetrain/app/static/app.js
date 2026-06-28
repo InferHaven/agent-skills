@@ -10,7 +10,7 @@ const POLL_MS = 1200;
 
 const cache = {
   title: null, statusS: null, badge: null, level: null, goal: null, prog: null,
-  learned: null, feedback: null, tests: null, cases: null, view: null, profile: null,
+  learned: null, feedback: null, tests: null, cases: null, view: null, profile: null, usage: null,
 };
 let confettiDone = false;
 let learnedPrev = [];
@@ -40,6 +40,27 @@ $("theme-toggle").addEventListener("click", () => {
   document.documentElement.dataset.theme = next;
   localStorage.setItem("tutor-theme", next);
 });
+
+/* ---------- editor theme (the typing-area palette, persisted) ---------- */
+const EDITOR_THEMES = ["dark", "midnight", "hacker", "light"];
+function applyEditorTheme(name) {
+  const ed = $("editor-mount");
+  if (!ed) return;
+  EDITOR_THEMES.forEach((t) => ed.classList.remove("etheme-" + t));
+  ed.classList.add("etheme-" + (EDITOR_THEMES.includes(name) ? name : "dark"));
+}
+(function initEditorTheme() {
+  const sel = $("editor-theme");
+  const saved = localStorage.getItem("tutor-editor-theme") || "dark";
+  applyEditorTheme(saved);
+  if (sel) {
+    sel.value = saved;
+    sel.addEventListener("change", () => {
+      applyEditorTheme(sel.value);
+      localStorage.setItem("tutor-editor-theme", sel.value);
+    });
+  }
+})();
 
 /* ---------- helpers ---------- */
 function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
@@ -139,6 +160,11 @@ function submit(reviewRequest) {
 $("send").addEventListener("click", () => submit(false));
 $("review").addEventListener("click", () => submit(true));
 $("reset").addEventListener("click", () => { editor.setValue(starterCode); editorDirtyStep = null; updateSendGate(); });
+$("skip").addEventListener("click", () => {
+  if (awaiting) return;
+  post({ type: "skip" });
+  toast("Skipping ahead — <b>the next step is on its way.</b>");
+});
 
 /* ---------- ask a question (no code submit) ---------- */
 $("ask").addEventListener("click", () => {
@@ -351,14 +377,46 @@ function updateProfile(p) {
   if (p.concepts != null) bits.push(`<span class="pchip">${esc(p.concepts)} concepts</span>`);
   wrap.innerHTML = `<h2>Your journey</h2>${p.welcome ? `<div class="pwelcome md">${md(p.welcome)}</div>` : ""}${bits.length ? `<div class="pchips">${bits.join("")}</div>` : ""}`;
 }
+function checksHtml(checks) {
+  if (!checks || !checks.length) return "";
+  const items = checks.map((c) => {
+    const ok = typeof c === "string" ? true : c.pass !== false;     // brick ✗ for a missing criterion
+    const text = typeof c === "string" ? c : (c.label || "");
+    return `<li class="${ok ? "ok" : "no"}">${esc(text)}</li>`;
+  }).join("");
+  return `<ul class="fb-checks">${items}</ul>`;
+}
+function updateUsage(u) {
+  const sig = JSON.stringify(u || null);
+  if (sig === cache.usage) return;
+  cache.usage = sig;
+  const wrap = $("usage-wrap");
+  if (!wrap) return;
+  if (!u || !u.plan) { wrap.innerHTML = ""; return; }
+  const cap = u.monthly_sessions;
+  const used = u.sessions_used != null ? u.sessions_used : 0;
+  const bits = [
+    `<span class="pchip">${esc(u.plan)} plan</span>`,
+    `<span class="pchip">${esc(used)}${cap == null ? "" : "/" + esc(cap)} lessons</span>`,
+  ];
+  if (u.cost_used_pct != null) bits.push(`<span class="pchip">${esc(u.cost_used_pct)}% used</span>`);
+  wrap.innerHTML = `<h2>Plan &amp; usage</h2><div class="pchips">${bits.join("")}</div>`;
+}
 function updateFeedback(fb) {
-  const sig = fb ? (fb.status || "none") + " " + (fb.md || "") : "none";
+  const sig = fb ? (fb.status || "none") + " " + (fb.md || "") + " " + JSON.stringify(fb.checks || []) : "none";
   if (sig === cache.feedback) return;
   cache.feedback = sig;
   const wrap = $("feedback-wrap");
   if (!fb || !fb.status || fb.status === "none") { wrap.innerHTML = ""; return; }
   const label = { pass: "nice — that works", retry: "not yet — let's adjust", comment: "from your tutor" }[fb.status] || "from your tutor";
-  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div></div>`;
+  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div>${checksHtml(fb.checks)}</div>`;
+  // Make it obvious where the tutor replied (esp. nudges): pull it into view + flash once.
+  const box = wrap.firstElementChild;
+  if (box) {
+    box.classList.add("flash");
+    setTimeout(() => box.classList.remove("flash"), 1400);
+    try { wrap.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) { /* older browsers */ }
+  }
 }
 function updateTests(t) {
   const sig = t ? (t.cmd || "") + "|" + (t.output || "") + "|" + t.passed : "none";
@@ -391,6 +449,8 @@ function buildIntake(s) {
       </div></div>
     <div class="field"><label>What do you want to walk away understanding?</label>
       <textarea id="goal" placeholder="e.g. how this auth middleware actually verifies a token"></textarea></div>
+    ${(s.models && s.models.length > 1) ? `<div class="field"><label for="model">Model <span class="sub">repo work and deeper reviews do best on Sonnet</span></label>
+      <select id="model">${s.models.map((m) => `<option value="${esc(m.id)}" ${m.id === (s.model || "") ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></div>` : ""}
     <button class="btn primary" id="begin">Begin →</button>`;
   let level = null, guidance = "balanced";
   const wire = (groupId, set) => el.querySelectorAll("#" + groupId + " .chip").forEach((c) =>
@@ -404,7 +464,9 @@ function buildIntake(s) {
     const goal = $("goal").value.trim();
     if (!level) return toast("Pick a level first ☝️", 2500);
     if (!goal) return toast("Tell your tutor what you're after.", 2500);
-    $("begin").disabled = true; post({ type: "intake", level, goal, guidance });
+    const modelEl = $("model");
+    const model = modelEl ? modelEl.value : undefined;
+    $("begin").disabled = true; post({ type: "intake", level, goal, guidance, model });
     toast("Got it — building your first step…");
   });
   showWork(false);
@@ -489,7 +551,7 @@ function wireHints(hints) {
 /* ---------- main render ---------- */
 function render(s) {
   currentState = s;
-  updateHeader(s); updateRail(s); updateLearned(s.learned || []); updateProfile(s.profile);
+  updateHeader(s); updateRail(s); updateLearned(s.learned || []); updateProfile(s.profile); updateUsage(s.usage);
 
   let view;
   if (s.phase === "intake" && (!s.level || !s.goal)) view = "intake";

@@ -280,6 +280,8 @@ class Handler(BaseHTTPRequestHandler):
                 s["level"] = ev.get("level")
                 s["goal"] = ev.get("goal")
                 s["guidance"] = ev.get("guidance") or "balanced"
+                if ev.get("model"):
+                    s["model"] = ev.get("model")  # per-session model (Sonnet/Haiku) for the loop
                 s["tutor_status"] = "thinking"
             elif t == "submit":
                 code = ev.get("code", "")

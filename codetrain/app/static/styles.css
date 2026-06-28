@@ -225,10 +225,35 @@ body {
   border-radius: 10px; overflow: hidden; min-height: 230px;
 }
 .editor:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--lamp); }
+
+/* Editor themes — recolor ONLY the typing area by overriding palette vars locally
+   (Prism tokens + gutter read these vars), so the page chrome is unaffected. */
+.file-tab .etheme {
+  margin-left: 8px; font-family: var(--mono); font-size: 0.68rem; cursor: pointer;
+  background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line-2);
+  border-radius: 6px; padding: 2px 6px;
+}
+.editor.etheme-dark {
+  --bg:#10151a; --bg-2:#161d23; --ink:#e7eef2; --ink-soft:#a6b3bd; --ink-faint:#6d7c87;
+  --accent:#39aaaa; --accent-2:#5fc6c6; --good:#5cb88a; --line:#2a3742; --line-2:#384854;
+}
+.editor.etheme-midnight {
+  --bg:#0b1020; --bg-2:#121a33; --ink:#dde6ff; --ink-soft:#9fb0d8; --ink-faint:#5e6f9c;
+  --accent:#7aa2ff; --accent-2:#a6c0ff; --good:#7be0b0; --line:#23304f; --line-2:#33436b;
+}
+.editor.etheme-hacker {
+  --bg:#020a05; --bg-2:#04140b; --ink:#36ff7a; --ink-soft:#27c75f; --ink-faint:#138a3c;
+  --accent:#39ff14; --accent-2:#86ffae; --good:#b6ff6b; --line:#0c3a1c; --line-2:#11512a;
+}
+.editor.etheme-hacker .cinput { caret-color: #39ff14; }
+.editor.etheme-light {
+  --bg:#ffffff; --bg-2:#f1f5f7; --ink:#16212a; --ink-soft:#46555f; --ink-faint:#8493a0;
+  --accent:#1f7f7f; --accent-2:#15706e; --good:#3f7d5a; --line:#d8e1e7; --line-2:#bccbd4;
+}
 /* Prism overlay editor */
 .cwrap { display: grid; grid-template-columns: auto 1fr; }
 .cwrap .gutter {
-  font-family: var(--mono); font-size: 0.85rem; line-height: 1.6; text-align: right;
+  font-family: var(--mono); font-size: 0.88rem; line-height: 1.6; text-align: right;
   color: var(--ink-faint); padding: 14px 10px 14px 14px; user-select: none;
   border-right: 1px solid var(--line); background: var(--bg-2); white-space: pre; overflow: hidden;
 }
@@ -255,7 +280,7 @@ body {
 /* textarea fallback */
 .ta-wrap { display: grid; grid-template-columns: auto 1fr; }
 .ta-wrap .gutter {
-  font-family: var(--mono); font-size: 0.85rem; line-height: 1.6; text-align: right;
+  font-family: var(--mono); font-size: 0.88rem; line-height: 1.6; text-align: right;
   color: var(--ink-faint); padding: 14px 10px 14px 14px; user-select: none;
   border-right: 1px solid var(--line); background: var(--bg-2); white-space: pre; overflow: hidden;
 }
@@ -333,6 +358,14 @@ body {
 .feedback.pass  .tag { color: var(--good); }
 .feedback.retry .tag { color: var(--retry); }
 .feedback.comment .tag { color: var(--accent); }
+/* per-check ✓ / ✗ — a failing criterion reads as a brick ✗, not a checkmark */
+.fb-checks { margin: 8px 0 0; padding-left: 0; list-style: none; font-size: 0.82rem; }
+.fb-checks li { padding-left: 20px; position: relative; color: var(--ink-soft); margin: 3px 0; }
+.fb-checks li.ok:before { content: "✓"; position: absolute; left: 0; color: var(--good); }
+.fb-checks li.no:before { content: "✗"; position: absolute; left: 0; color: var(--brand-2); }
+.fb-checks li.no { color: var(--ink); }
+/* flash so it's obvious where a tutor reply / nudge landed */
+.feedback.flash { box-shadow: 0 0 0 3px var(--lamp); transition: box-shadow .25s ease; }
 
 .tests {
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden;

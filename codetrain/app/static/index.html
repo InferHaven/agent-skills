@@ -42,6 +42,12 @@
       <div class="file-tab">
         <span aria-hidden="true">✎</span><span class="name" id="file-name">scratch</span>
         <span class="lang" id="file-lang">text</span>
+        <select class="etheme" id="editor-theme" title="Editor theme" aria-label="Editor theme">
+          <option value="dark">Dark</option>
+          <option value="midnight">Midnight</option>
+          <option value="hacker">Hacker</option>
+          <option value="light">Light</option>
+        </select>
       </div>
 
       <div class="editor" id="editor-mount"></div>
@@ -50,6 +56,7 @@
         <button class="btn run" id="run">Run ▷</button>
         <button class="btn primary" id="send">Send to tutor →</button>
         <button class="btn ask" id="review" title="Get a full walkthrough — even if it isn't passing yet">Review my attempt</button>
+        <button class="btn ghost" id="skip" title="Skip this step and move on">Skip ⏭</button>
         <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
       </div>
       <div class="askrow">
@@ -67,6 +74,7 @@
     <!-- RAIL: progress + learned -->
     <aside class="panel rail" aria-label="Progress and notes"><div class="pad">
       <div id="profile-wrap"></div>
+      <div id="usage-wrap"></div>
       <div>
         <h2>Session</h2>
         <div class="meta-row" id="meta-level">Level: <b>—</b></div>
