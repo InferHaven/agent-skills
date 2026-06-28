@@ -417,9 +417,9 @@ function buildStep(s) {
     <h1 class="step-head">${esc(step.heading || "Working…")}</h1>
     <div class="md">${md(step.body_md)}</div>
     ${step.task_md ? `<div class="task"><p class="eyebrow">your task</p><div class="md">${md(step.task_md)}</div></div>` : ""}
-    ${hints.length ? '<div class="hints" id="hints"><button class="hint-btn" id="hint-btn">Need a nudge?</button></div>' : ""}`;
+    <div class="hints" id="hints"><button class="hint-btn" id="hint-btn">Need a nudge?</button></div>`;
   revealedHints = 0;
-  if (hints.length) wireHints(hints);
+  wireHints(hints);
 
   showWork(true);
   setText($("file-name"), step.file || "scratch");
@@ -471,13 +471,18 @@ function showWork(on) {
 function wireHints(hints) {
   const btn = $("hint-btn"), wrap = $("hints");
   btn.addEventListener("click", () => {
-    if (revealedHints >= hints.length) return;
-    const i = revealedHints++;
-    const h = document.createElement("p"); h.className = "hint";
-    h.innerHTML = `<b>nudge ${i + 1}.</b> ${mdInline(hints[i])}`;
-    wrap.insertBefore(h, btn);
-    post({ type: "hint", level: revealedHints });
-    if (revealedHints >= hints.length) { btn.disabled = true; btn.textContent = "no more nudges — you've got this"; }
+    if (revealedHints < hints.length) {
+      // Pre-authored hints (curated lessons): reveal the next one locally, no tutor turn.
+      const i = revealedHints++;
+      const h = document.createElement("p"); h.className = "hint";
+      h.innerHTML = `<b>nudge ${i + 1}.</b> ${mdInline(hints[i])}`;
+      wrap.insertBefore(h, btn);
+      post({ type: "hint", level: revealedHints });
+      return;
+    }
+    // No (more) pre-authored hints: ask the tutor for an on-the-fly nudge (cheap; matches
+    // the managed SaaS). The reply renders through the normal feedback path.
+    post({ type: "hint", code: editor ? editor.getValue() : "", client_tests: lastRun });
   });
 }
 
