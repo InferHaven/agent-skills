@@ -377,6 +377,16 @@ body {
 .patch-note { color: var(--ink-faint); font-size: 0.78rem; }
 .patch-note code { font-family: var(--mono); }
 
+/* overlay popup (quick language reference) */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.62); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.overlay-box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; max-width: 760px; width: 100%; max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--line); font-weight: 700; }
+.overlay-body { padding: 16px 18px; overflow: auto; }
+.reftab { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.reftab td { padding: 5px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.reftab code { font-family: var(--mono); color: var(--accent); }
+.overlay-body .muted { color: var(--ink-soft); }
+
 .tests {
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
 }

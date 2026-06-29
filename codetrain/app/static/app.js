@@ -115,6 +115,40 @@ function activeStep(s) {
 function activeTests(s) { return activeStep(s).tests || (s && s.tests) || {}; }
 function currentLang() { const t = activeTests(currentState); return t.lang || activeStep(currentState).lang || "text"; }
 
+/* ---------- overlay popup (quick language reference) ---------- */
+function _escClose(e) { if (e.key === "Escape") closeOverlay(); }
+function closeOverlay() {
+  const o = $("overlay"); if (o) o.remove();
+  document.removeEventListener("keydown", _escClose);
+}
+function openOverlay(title, html) {
+  closeOverlay();
+  const o = document.createElement("div");
+  o.className = "overlay"; o.id = "overlay";
+  o.innerHTML = `<div class="overlay-box"><div class="overlay-head"><span>${esc(title)}</span>
+    <button class="btn ghost" id="ov-close">Close ✕</button></div><div class="overlay-body">${html}</div></div>`;
+  document.body.appendChild(o);
+  $("ov-close").addEventListener("click", closeOverlay);
+  o.addEventListener("click", (e) => { if (e.target === o) closeOverlay(); });
+  document.addEventListener("keydown", _escClose);
+}
+const REFERENCE = {
+  python: [["print(x)", "write a line to output"], ["len(x)", "length of a string/list"], ["range(a, b)", "numbers a … b-1"], ["[f(x) for x in xs]", "list comprehension"], ["s.split(sep)", "split a string into a list"], ["if / elif / else", "branch on conditions"], ["for x in xs:", "loop over items"], ["def name(args):", "define a function; return hands a value back"], ["d[k] / d.get(k)", "dict lookup (get is safe)"], ["x % y", "remainder — even when x % 2 == 0"]],
+  javascript: [["console.log(x)", "print to output"], ["arr.map(fn)", "new array, fn on each item"], ["arr.filter(fn)", "keep items where fn is true"], ["arr.reduce((a, x) => …, 0)", "fold to one value"], ["`${x}`", "template string"], ["const / let", "declare a variable"], ["x === y", "strict equality"], ["arr.length", "number of items"], ["(a, b) => a + b", "arrow function"]],
+  bash: [["echo X", "print text"], ["ls -l", "list files (long form)"], ["VAR=value ; $VAR", "set / use a variable"], ["for i in 1 2 3; do … done", "loop"], ["if [ cond ]; then … fi", "branch"], ["grep pat file", "search lines"], ["chmod 644 f", "set permissions"], ["mkdir d / touch f", "make a dir / file"], ["cmd1 | cmd2", "pipe output"]],
+  ruby: [["puts x", "print a line"], ["arr.map { |x| … }", "transform each"], ["arr.select { |x| … }", "keep matching"], ["def name; end", "method"], ["x.times { … }", "repeat x times"]],
+  perl: [["print \"$x\\n\"", "print"], ["my $x = …", "declare a variable"], ["foreach my $i (@a) { }", "loop"], ["if (cond) { }", "branch"], ["$str =~ /pat/", "regex match"]],
+  php: [["echo $x;", "print"], ["$arr = [1, 2];", "array"], ["foreach ($a as $x) { }", "loop"], ["function name() { }", "function"], ["if (cond) { }", "branch"]],
+};
+function openReference(lang) {
+  const aliases = { sh: "bash", shell: "bash", node: "javascript", js: "javascript", py: "python", "php-web": "php" };
+  const l = aliases[(lang || "").toLowerCase()] || (lang || "").toLowerCase();
+  const rows = REFERENCE[l] || REFERENCE.python;
+  const html = `<table class="reftab">${rows.map(([a, b]) => `<tr><td><code>${esc(a)}</code></td><td class="muted">${esc(b)}</td></tr>`).join("")}</table>
+    <p class="muted" style="margin-top:10px;font-size:0.78rem">A quick reference, not the answer — combine these to solve the step.</p>`;
+  openOverlay(`${l} reference`, html);
+}
+
 /* ---------- submit / lock ---------- */
 // Can we verify correctness in the browser for this step? (runtime + cases)
 function canVerify() {
@@ -161,6 +195,7 @@ function submit(reviewRequest) {
 $("send").addEventListener("click", () => submit(false));
 $("review").addEventListener("click", () => submit(true));
 $("reset").addEventListener("click", () => { editor.setValue(starterCode); editorDirtyStep = null; updateSendGate(); });
+$("ref").addEventListener("click", () => openReference(currentLang()));
 $("skip").addEventListener("click", () => {
   if (awaiting) return;
   post({ type: "skip" });
@@ -480,12 +515,17 @@ function buildIntake(s) {
         <button class="chip on" data-v="balanced" aria-pressed="true">Balanced</button>
         <button class="chip" data-v="guided" aria-pressed="false">Guided</button>
       </div></div>
-    <div class="field"><label>What do you want to walk away understanding?</label>
-      <textarea id="goal" placeholder="e.g. how this auth middleware actually verifies a token"></textarea></div>
+    ${s.repo_mode ? `<div class="field"><label id="intent-l">On your repo <span class="sub">Explore reads your code read-only; Guided change builds toward a real edit you can apply at the end</span></label>
+      <div class="chips" id="intent" role="group" aria-labelledby="intent-l">
+        <button class="chip on" data-v="explore" aria-pressed="true">Explore (read-only)</button>
+        <button class="chip" data-v="guided" aria-pressed="false">Guided change</button>
+      </div></div>` : ""}
+    <div class="field"><label>${s.repo_mode ? "What do you want to learn or change in this repo?" : "What do you want to walk away understanding?"}</label>
+      <textarea id="goal" placeholder="${s.repo_mode ? "e.g. walk me through adding a --verbose flag, or explain how auth works" : "e.g. how this auth middleware actually verifies a token"}"></textarea></div>
     ${(s.models && s.models.length > 1) ? `<div class="field"><label for="model">Model <span class="sub">repo work and deeper reviews do best on Sonnet</span></label>
       <select id="model">${s.models.map((m) => `<option value="${esc(m.id)}" ${m.id === (s.model || "") ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></div>` : ""}
     <button class="btn primary" id="begin">Begin →</button>`;
-  let level = null, guidance = "balanced";
+  let level = null, guidance = "balanced", intent = "explore";
   const wire = (groupId, set) => el.querySelectorAll("#" + groupId + " .chip").forEach((c) =>
     c.addEventListener("click", () => {
       el.querySelectorAll("#" + groupId + " .chip").forEach((x) => { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
@@ -493,13 +533,15 @@ function buildIntake(s) {
     }));
   wire("lvl", (v) => { level = v; });
   wire("gd", (v) => { guidance = v; });
+  if (s.repo_mode) wire("intent", (v) => { intent = v; });
   $("begin").addEventListener("click", () => {
     const goal = $("goal").value.trim();
     if (!level) return toast("Pick a level first ☝️", 2500);
     if (!goal) return toast("Tell your tutor what you're after.", 2500);
     const modelEl = $("model");
     const model = modelEl ? modelEl.value : undefined;
-    $("begin").disabled = true; post({ type: "intake", level, goal, guidance, model });
+    $("begin").disabled = true;
+    post({ type: "intake", level, goal, guidance, model, ...(s.repo_mode ? { intent } : {}) });
     toast("Got it — building your first step…");
   });
   showWork(false);
