@@ -11,6 +11,7 @@ const POLL_MS = 1200;
 const cache = {
   title: null, statusS: null, badge: null, level: null, goal: null, prog: null,
   learned: null, feedback: null, tests: null, cases: null, view: null, profile: null, usage: null,
+  patch: null,
 };
 let confettiDone = false;
 let learnedPrev = [];
@@ -386,6 +387,38 @@ function checksHtml(checks) {
   }).join("");
   return `<ul class="fb-checks">${items}</ul>`;
 }
+function diffHtml(diff) {
+  return String(diff || "").split("\n").map((l) => {
+    const cls = l.startsWith("+") && !l.startsWith("+++") ? "dl-add"
+      : l.startsWith("-") && !l.startsWith("---") ? "dl-del"
+      : l.startsWith("@@") ? "dl-hunk" : "";
+    return `<span class="${cls}">${esc(l)}</span>`;
+  }).join("\n");
+}
+function updatePatch(p) {
+  const sig = JSON.stringify(p || null);
+  if (sig === cache.patch) return;
+  cache.patch = sig;
+  const wrap = $("patch-wrap");
+  if (!wrap) return;
+  if (!p || !p.target) { wrap.innerHTML = ""; return; }
+  wrap.innerHTML = `<div class="patch-panel">
+    <div class="patch-head"><span>Apply to your repo?</span><code>${esc(p.target)}</code></div>
+    ${p.summary ? `<div class="patch-sum">${esc(p.summary)}</div>` : ""}
+    <pre class="diff">${diffHtml(p.diff)}</pre>
+    <div class="patch-actions">
+      <button class="btn primary" id="patch-apply">Apply to ${esc(p.target)}</button>
+      <button class="btn ghost" id="patch-cancel">Not now</button>
+      <span class="patch-note">A backup (<code>.codetrain.bak</code>) is saved before writing.</span>
+    </div></div>`;
+  $("patch-apply").addEventListener("click", () => {
+    $("patch-apply").disabled = true; $("patch-cancel").disabled = true;
+    post({ type: "patch_apply" }); toast("Writing to your repo…");
+  });
+  $("patch-cancel").addEventListener("click", () => {
+    $("patch-cancel").disabled = true; post({ type: "patch_cancel" });
+  });
+}
 function updateUsage(u) {
   const sig = JSON.stringify(u || null);
   if (sig === cache.usage) return;
@@ -551,7 +584,7 @@ function wireHints(hints) {
 /* ---------- main render ---------- */
 function render(s) {
   currentState = s;
-  updateHeader(s); updateRail(s); updateLearned(s.learned || []); updateProfile(s.profile); updateUsage(s.usage);
+  updateHeader(s); updateRail(s); updateLearned(s.learned || []); updateProfile(s.profile); updateUsage(s.usage); updatePatch(s.patch);
 
   let view;
   if (s.phase === "intake" && (!s.level || !s.goal)) view = "intake";

@@ -366,6 +366,16 @@ body {
 .fb-checks li.no { color: var(--ink); }
 /* flash so it's obvious where a tutor reply / nudge landed */
 .feedback.flash { box-shadow: 0 0 0 3px var(--lamp); transition: box-shadow .25s ease; }
+/* patch-back: propose writing the learner's accepted code into their repo */
+.patch-panel { border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; background: var(--bg-2); animation: rise .4s ease both; }
+.patch-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.patch-head code { font-family: var(--mono); font-size: 0.82rem; color: var(--accent); }
+.patch-sum { color: var(--ink-soft); font-size: 0.9rem; margin: 6px 0 0; }
+.patch-panel .diff { margin: 10px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 0.78rem; line-height: 1.5; white-space: pre; }
+.diff .dl-add { color: var(--good); } .diff .dl-del { color: var(--brand-2); } .diff .dl-hunk { color: var(--accent-2); }
+.patch-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.patch-note { color: var(--ink-faint); font-size: 0.78rem; }
+.patch-note code { font-family: var(--mono); }
 
 .tests {
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
