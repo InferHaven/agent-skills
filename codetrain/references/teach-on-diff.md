@@ -1,6 +1,6 @@
 # Teach-on-diff (learn from real changes, Socratically)
 
-A repo-mode variant: instead of inventing an exercise, the tutor turns a **real
+A local-code variant: instead of inventing an exercise, the tutor turns a **real
 diff** — the learner's own uncommitted work, a commit, a branch, or a PR — into a
 hands-on walkthrough. The learner re-derives each change themselves; you never paste
 the finished diff as the answer (the one hard rule still holds).
@@ -41,7 +41,7 @@ generated files). For each, author one step:
 
 ## Mode
 
-- **Their own change, still in the tree** → repo mode is fine, but seed the editor
+- **Their own change, still in the tree** → working on the real file is fine, but seed the editor
   from the *before-state* so they re-derive it; their working tree stays untouched
   until they choose to keep it.
 - **A PR or someone else's commit** → use **sandbox** mode (a throwaway copy of the

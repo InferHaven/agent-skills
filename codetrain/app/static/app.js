@@ -183,7 +183,11 @@ function unlockSubmit() {
 function submit(reviewRequest) {
   if (awaiting) return;
   lockSubmit();
-  post({ type: "submit", code: editor.getValue(), note: $("note").value, client_tests: lastRun, review_request: !!reviewRequest });
+  if (multiFiles.length > 1 && editor && activeFile) multiBuffers[activeFile] = editor.getValue();
+  const primary = multiFiles.length > 1 ? (multiBuffers[multiFiles[0].file] || "") : editor.getValue();
+  const _sub = { type: "submit", code: primary, note: $("note").value, client_tests: lastRun, review_request: !!reviewRequest, mentions: extractMentions($("note").value) };
+  if (multiFiles.length > 1) _sub.files = multiBuffers;
+  post(_sub);
   $("note").value = "";
   const greenAll = canVerify() && lastRun && lastRun.total > 0 && lastRun.passed === lastRun.total;
   toast(reviewRequest
@@ -194,8 +198,99 @@ function submit(reviewRequest) {
 }
 $("send").addEventListener("click", () => submit(false));
 $("review").addEventListener("click", () => submit(true));
-$("reset").addEventListener("click", () => { editor.setValue(starterCode); editorDirtyStep = null; updateSendGate(); });
+$("reset").addEventListener("click", () => {
+  if (multiFiles.length > 1 && activeFile) { const f = multiFiles.find((x) => x.file === activeFile) || {}; editor.setValue(f.starter_code || ""); }
+  else editor.setValue(starterCode);
+  editorDirtyStep = null; updateSendGate();
+});
 $("ref").addEventListener("click", () => openReference(currentLang()));
+
+/* ---------- editor pop-out (full-page, distraction-free) ---------- */
+function setEditorFullscreen(on) {
+  const ed = $("editor-mount"); if (!ed) return;
+  ed.classList.toggle("fullscreen", on);
+  const b = $("ed-expand"); if (b) b.textContent = on ? "⤡ Exit" : "⤢ Expand";
+  if (on && editor) editor.focus();
+}
+$("ed-expand").addEventListener("click", () => setEditorFullscreen(!$("editor-mount").classList.contains("fullscreen")));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("editor-mount").classList.contains("fullscreen")) setEditorFullscreen(false);
+});
+
+/* ---------- @-mention: attach exact file context (repo files / uploaded files) ---------- */
+let mentionFiles = [];
+function extractMentions(text) {
+  const found = []; const re = /@([^\s@]+)/g; let m;
+  while ((m = re.exec(text || ""))) { if (mentionFiles.includes(m[1])) found.push(m[1]); }
+  return [...new Set(found)];
+}
+function wireMention(input) {
+  if (!input || input._mentionWired) return;
+  input._mentionWired = true;
+  const pop = document.createElement("div"); pop.className = "mention-pop"; pop.hidden = true;
+  document.body.appendChild(pop);
+  let active = 0, items = [];
+  const hide = () => { pop.hidden = true; items = []; };
+  const place = () => { const r = input.getBoundingClientRect(); pop.style.left = r.left + "px"; pop.style.width = Math.max(r.width, 220) + "px"; pop.style.top = (window.scrollY + r.top) + "px"; pop.style.transform = "translateY(-100%)"; };
+  const upd = () => pop.querySelectorAll(".mi").forEach((el, i) => el.classList.toggle("on", i === active));
+  function token() {
+    const v = input.value, c = input.selectionStart, before = v.slice(0, c), at = before.lastIndexOf("@");
+    if (at < 0) return null;
+    const frag = before.slice(at + 1);
+    return /\s/.test(frag) ? null : { at, query: frag };
+  }
+  function choose(i, tok) {
+    const v = input.value, c = input.selectionStart;
+    const head = v.slice(0, tok.at) + "@" + items[i] + " ";
+    input.value = head + v.slice(c);
+    input.selectionStart = input.selectionEnd = head.length;
+    hide(); input.focus();
+  }
+  function show(tok) {
+    items = mentionFiles.filter((f) => f.toLowerCase().includes(tok.query.toLowerCase())).slice(0, 8);
+    if (!items.length) return hide();
+    active = 0;
+    pop.innerHTML = items.map((f, i) => `<div class="mi ${i === 0 ? "on" : ""}" data-i="${i}">${esc(f)}</div>`).join("");
+    place(); pop.hidden = false;
+    pop.querySelectorAll(".mi").forEach((el) => { el.onmousedown = (e) => { e.preventDefault(); choose(+el.dataset.i, tok); }; });
+  }
+  input.addEventListener("input", () => { const t = token(); t ? show(t) : hide(); });
+  input.addEventListener("keydown", (e) => {
+    if (pop.hidden) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, items.length - 1); upd(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); upd(); }
+    else if (e.key === "Enter" || e.key === "Tab") { const t = token(); if (t && items.length) { e.preventDefault(); choose(active, t); } }
+    else if (e.key === "Escape") hide();
+  });
+  input.addEventListener("blur", () => setTimeout(hide, 150));
+}
+wireMention($("note"));
+
+/* ---------- multi-file step editor (a tab per file) ---------- */
+let multiFiles = [], multiBuffers = {}, activeFile = null;
+function renderFileTabs(files) {
+  const wrap = $("file-tabs"); if (!wrap) return;
+  if (!files || files.length < 2) { wrap.innerHTML = ""; wrap.hidden = true; return; }
+  wrap.hidden = false;
+  wrap.innerHTML = files.map((f) => `<button class="ftab ${f.file === activeFile ? "on" : ""}" data-f="${esc(f.file)}" type="button">${esc(f.file)}</button>`).join("");
+  wrap.querySelectorAll(".ftab").forEach((b) => (b.onclick = () => switchFile(b.dataset.f)));
+}
+function switchFile(path) {
+  if (activeFile && multiBuffers[activeFile] !== undefined && editor) multiBuffers[activeFile] = editor.getValue();
+  activeFile = path;
+  const f = multiFiles.find((x) => x.file === path) || {};
+  if (editor) { editor.setLanguage(f.lang || "text"); editor.setValue(multiBuffers[path] || ""); }
+  setText($("file-name"), path); setText($("file-lang"), f.lang || "text");
+  renderFileTabs(multiFiles);
+}
+function seedMulti(step, s) {
+  multiFiles = step.files;
+  const prior = (s.submission && s.submission.files) || {};
+  multiBuffers = {};
+  multiFiles.forEach((f) => { multiBuffers[f.file] = prior[f.file] != null ? prior[f.file] : (f.starter_code || ""); });
+  activeFile = null;
+  switchFile(multiFiles[0].file);
+}
 $("skip").addEventListener("click", () => {
   if (awaiting) return;
   post({ type: "skip" });
@@ -206,7 +301,7 @@ $("skip").addEventListener("click", () => {
 $("ask").addEventListener("click", () => {
   const q = $("note").value.trim();
   if (!q) return toast("Type a question first ☝️", 2200);
-  post({ type: "question", text: q, code: editor ? editor.getValue() : "" });
+  post({ type: "question", text: q, code: editor ? editor.getValue() : "", mentions: extractMentions(q) });
   $("note").value = "";
   toast("Asked your tutor — <b>the answer will appear here</b> shortly.");
 });
@@ -534,6 +629,7 @@ function buildIntake(s) {
   wire("lvl", (v) => { level = v; });
   wire("gd", (v) => { guidance = v; });
   if (s.repo_mode) wire("intent", (v) => { intent = v; });
+  wireMention($("goal"));
   $("begin").addEventListener("click", () => {
     const goal = $("goal").value.trim();
     if (!level) return toast("Pick a level first ☝️", 2500);
@@ -541,7 +637,7 @@ function buildIntake(s) {
     const modelEl = $("model");
     const model = modelEl ? modelEl.value : undefined;
     $("begin").disabled = true;
-    post({ type: "intake", level, goal, guidance, model, ...(s.repo_mode ? { intent } : {}) });
+    post({ type: "intake", level, goal, guidance, model, mentions: extractMentions(goal), ...(s.repo_mode ? { intent } : {}) });
     toast("Got it — building your first step…");
   });
   showWork(false);
@@ -574,10 +670,18 @@ function buildStep(s) {
     ? "Run to try it out, then Send — or “Review my attempt” for a walkthrough anytime."
     : "Send when ready, or “Review my attempt” for a walkthrough — your tutor runs this language for you.";
 
+  const multi = Array.isArray(step.files) && step.files.length > 1;
   starterCode = step.starter_code || "";
   const key = (s.progress && s.progress.step) + "|" + (step.heading || "");
   if (key !== lastSeededStep && editorDirtyStep !== key) {
-    if (editor) editor.setValue((s.submission && s.submission.code) || starterCode);
+    if (multi) {
+      seedMulti(step, s);   // tabs + per-file buffers
+    } else {
+      multiFiles = []; multiBuffers = {}; activeFile = null; renderFileTabs(null);
+      // Prefer this step's own file (starter_code, set for repo steps) over the previous step's
+      // stale submission — otherwise the box shows last step's text on the wrong file.
+      if (editor) editor.setValue(starterCode || (s.submission && s.submission.code) || "");
+    }
     lastSeededStep = key;
   }
   renderOutput("", "");
@@ -626,6 +730,7 @@ function wireHints(hints) {
 /* ---------- main render ---------- */
 function render(s) {
   currentState = s;
+  if (Array.isArray(s.mention_files)) mentionFiles = s.mention_files;
   updateHeader(s); updateRail(s); updateLearned(s.learned || []); updateProfile(s.profile); updateUsage(s.usage); updatePatch(s.patch);
 
   let view;

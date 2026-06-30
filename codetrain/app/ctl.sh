@@ -25,7 +25,7 @@ case "$cmd" in
     printf '%s\n' "$ws" ;;
   serve)
     # <ws> = session-dir (.tutor state lives here — keep it under /tmp so it's allow-listed).
-    # Optional [code-root] is where submitted code is written (repo mode); defaults to <ws>.
+    # Optional [code-root] is where submitted code is written (local code); defaults to <ws>.
     # Detached (setsid + nohup) so the page outlives the Claude session that started it.
     [ -n "$ws" ] || { echo "usage: ctl.sh serve <session-dir> [code-root]" >&2; exit 2; }
     code="${3:-$ws}"

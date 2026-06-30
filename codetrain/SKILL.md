@@ -55,7 +55,7 @@ per finished session).
 
 ## Choosing a mode
 
-- **Repo mode** — learning/extending real code in a git repo. Edit **in place on the
+- **Local code** — learning/extending real code in a git repo. Edit **in place on the
   current branch** (if on `main`/`master`, offer a branch first). Seed the editor with the
   file's **actual current contents**. Review with `git diff`. The code is real — nothing to
   redo. (Keep session state in `/tmp`, not the repo — see the loop.)
@@ -128,11 +128,11 @@ The only full `session.json` Write is at creation (authoring `steps[]`).
 ## The tutoring loop (one path)
 
 1. **Set up.** Read `profile.json` (Read tool). Pick the mode. Make a session dir:
-   `bash $SKILL_DIR/app/ctl.sh sandbox` (prints a `/tmp/codetrain-*` path — use it even in
-   repo mode, so state stays allow-listed). Write the `phase:"intake"` `session.json` (Write
+   `bash $SKILL_DIR/app/ctl.sh sandbox` (prints a `/tmp/codetrain-*` path — use it even for
+   local-code sessions, so state stays allow-listed). Write the `phase:"intake"` `session.json` (Write
    tool). Serve it:
    - sandbox: `bash $SKILL_DIR/app/ctl.sh serve <session-dir>`
-   - repo: `bash $SKILL_DIR/app/ctl.sh serve <session-dir> <repo-root>` (code writes land in
+   - local code: `bash $SKILL_DIR/app/ctl.sh serve <session-dir> <repo-root>` (code writes land in
      the repo; state stays in `/tmp`).
 
    `serve` is **detached** — it prints `TUTOR_URL=…` and the page survives even if your
@@ -143,7 +143,7 @@ The only full `session.json` Write is at creation (authoring `steps[]`).
    the lesson, sized to `level` + `guidance` (see Guidance). **Cheapest: author step 1 now**,
    then **append each next step as the user advances** (`steps_append` + bump `progress.step`
    — don't generate steps they may never reach); or author all `steps:[…]` upfront if short.
-   Set `phase:"learning"`, `progress.step:1`. Repo → seed `starter_code`. Patch + **re-arm**.
+   Set `phase:"learning"`, `progress.step:1`. Local code → seed `starter_code`. Patch + **re-arm**.
 3. **On wake**, the payload starts `NEW_EVENT:TYPE` and carries the submitted code +
    `client_tests` (so you needn't read the file). **submit:** review the latest; patch
    `feedback` (+ per-step results via `step_patch`), `learned_append`, `clear_inbox`.
@@ -228,7 +228,7 @@ rationalizations:
 **Red flags — STOP:** a complete working answer in `step.starter_code` / `feedback.md` /
 the last hint; writing more than a stub/signature/scaffold. Delete it; give a smaller step or
 the next nudge. `starter_code` may carry scaffolding (signatures, imports, `pass`/`TODO`, or
-the file's existing contents in repo mode) — never the part that *is* the exercise.
+the file's existing contents when working on real code) — never the part that *is* the exercise.
 
 ## Ending a session
 

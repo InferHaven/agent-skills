@@ -51,7 +51,7 @@ def scoped_rules(skill_dir, home):
         "Read(//%s/**)" % sdir,
         # sandbox creation (ctl.sh sandbox also covers it; kept for a direct mktemp)
         "Bash(mktemp -d /tmp/codetrain-*)",
-        # repo-mode review + teach-on-diff (read-only)
+        # local-code review + teach-on-diff (read-only)
         "Bash(git diff:*)",
     ]
 

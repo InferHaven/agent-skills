@@ -22,11 +22,11 @@ do NOT hardcode `/root/...`; it differs per install).
 | Learner profile | `$HOME/.codetrain/profile.json` (small, cross-session) |
 | Session history | `$HOME/.codetrain/history/<date>-<slug>.md` |
 
-`<workspace>` = the git repo root (repo mode) or `/tmp/codetrain-XXXX` (sandbox).
+`<workspace>` = the git repo root (local-code sessions) or `/tmp/codetrain-XXXX` (sandbox).
 
 ## Launch (once per session, detached)
 
-Keep the `.tutor` **session state in `/tmp`** (allow-listed) even in repo mode: make a
+Keep the `.tutor` **session state in `/tmp`** (allow-listed) even when working on a real repo: make a
 session dir with `bash "$SKILL_DIR/app/ctl.sh" sandbox`, then serve it. Reuse a live
 server first: **Read** `<session-dir>/.tutor/url.txt` (Read tool); if it answers, reuse.
 Otherwise:
@@ -68,7 +68,7 @@ rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
   "Edit(//<HOME>/.codetrain/**)",
   "Read(//<HOME>/.claude/skills/codetrain/**)",  // the skill's own references the tutor reads
   "Bash(mktemp -d /tmp/codetrain-*)",            // direct mktemp (ctl.sh sandbox also covers this)
-  "Bash(git diff:*)"                             // repo-mode review / teach-on-diff (read-only)
+  "Bash(git diff:*)"                             // real-code review / teach-on-diff (read-only)
 ] } }
 ```
 
@@ -252,7 +252,7 @@ Keep each turn cheap: **read the watcher output, never re-Read `session.json`** 
 skill's scripts; patch by **writing `.tutor/patch.json`** (not a full session write);
 **≤2–3 tool calls per turn**; **never poll**; **one watcher at a time**.
 
-## Repo mode — the code is REAL
+## Working on real code — it's REAL
 
 - Workspace = repo root; `step.file` = the real relative path. The server writes
   submissions straight to that file, so a correct submission **is** the working-

@@ -256,6 +256,7 @@ body {
   font-family: var(--mono); font-size: 0.88rem; line-height: 1.6; text-align: right;
   color: var(--ink-faint); padding: 14px 10px 14px 14px; user-select: none;
   border-right: 1px solid var(--line); background: var(--bg-2); white-space: pre; overflow: hidden;
+  min-height: 230px; max-height: 60vh;   /* match .celayers so the gutter clips + scroll-syncs */
 }
 .celayers { position: relative; min-height: 230px; max-height: 60vh; overflow: hidden; }
 .celayers .chl, .celayers .cinput {
@@ -267,6 +268,47 @@ body {
 .celayers .chl code { font: inherit; white-space: pre; background: none; padding: 0; }
 .celayers .cinput { z-index: 1; color: transparent; background: transparent; caret-color: var(--accent); resize: none; outline: none; }
 .celayers .cinput::selection { background: rgba(57,170,170,0.30); }
+
+/* full-page pop-out: distraction-free editing of large files */
+.editor.fullscreen {
+  position: fixed; inset: 14px; z-index: 9998; min-height: 0;
+  display: flex; flex-direction: column; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+}
+.editor.fullscreen .cwrap { flex: 1; min-height: 0; }
+.editor.fullscreen .celayers,
+.editor.fullscreen .cwrap .gutter,
+.editor.fullscreen .ta-wrap textarea,
+.editor.fullscreen .ta-wrap .gutter { max-height: none; height: 100%; min-height: 0; }
+.ed-expand {
+  font-family: var(--mono); font-size: 0.68rem; cursor: pointer; margin-left: 6px;
+  background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line-2);
+  border-radius: 6px; padding: 2px 7px;
+}
+.ed-expand:hover { color: var(--ink); border-color: var(--accent); }
+
+/* @-mention autocomplete */
+.mention-pop {
+  position: absolute; z-index: 9999; max-height: 240px; overflow: auto;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 9px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45); padding: 4px;
+}
+.mention-pop .mi {
+  font-family: var(--mono); font-size: 0.78rem; color: var(--ink-soft);
+  padding: 5px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.mention-pop .mi.on, .mention-pop .mi:hover { background: var(--bg-2); color: var(--ink); }
+
+/* multi-file step: a tab per file */
+.file-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.file-tabs .ftab {
+  font-family: var(--mono); font-size: 0.72rem; cursor: pointer;
+  background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line);
+  border-radius: 7px 7px 0 0; padding: 5px 10px; max-width: 280px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-tabs .ftab.on { color: var(--ink); border-color: var(--accent); background: var(--bg); }
+.file-tabs .ftab:hover { color: var(--ink); }
 
 /* Prism token colors mapped to the palette (tracks light/dark) */
 .chl .token.comment, .chl .token.prolog, .chl .token.doctype, .chl .token.cdata { color: var(--ink-faint); font-style: italic; }
@@ -283,11 +325,13 @@ body {
   font-family: var(--mono); font-size: 0.88rem; line-height: 1.6; text-align: right;
   color: var(--ink-faint); padding: 14px 10px 14px 14px; user-select: none;
   border-right: 1px solid var(--line); background: var(--bg-2); white-space: pre; overflow: hidden;
+  min-height: 230px; max-height: 60vh;
 }
 .ta-wrap textarea {
   font-family: var(--mono); font-size: 0.88rem; line-height: 1.6; color: var(--ink);
-  background: transparent; border: 0; resize: vertical; outline: none;
-  padding: 14px 16px; min-height: 230px; tab-size: 4; caret-color: var(--accent); width: 100%;
+  background: transparent; border: 0; resize: none; outline: none;
+  padding: 14px 16px; min-height: 230px; max-height: 60vh; overflow: auto;
+  tab-size: 4; caret-color: var(--accent); width: 100%;
 }
 .ta-wrap textarea::placeholder { color: var(--ink-faint); }
 

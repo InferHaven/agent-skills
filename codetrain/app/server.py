@@ -285,14 +285,21 @@ class Handler(BaseHTTPRequestHandler):
                 s["tutor_status"] = "thinking"
             elif t == "submit":
                 code = ev.get("code", "")
-                s["submission"] = {"ts": ev["ts"], "code": code, "note": ev.get("note", "")}
-                rel = active_step(s).get("file")
-                if rel:
+                files_map = ev.get("files") if isinstance(ev.get("files"), dict) else None
+                s["submission"] = {"ts": ev["ts"], "code": code, "note": ev.get("note", ""),
+                                   "files": files_map or {}}
+                # Write each edited file to its sandbox path (multi-file step), else the single
+                # active-step file. safe_join scopes everything to the sandbox workspace.
+                writes = files_map.items() if files_map else (
+                    [(active_step(s).get("file"), code)] if active_step(s).get("file") else [])
+                for rel, fcode in writes:
+                    if not rel:
+                        continue
                     try:
                         target = safe_join(self.workspace, rel)
                         os.makedirs(os.path.dirname(target), exist_ok=True)
                         with open(target, "w", encoding="utf-8") as f:
-                            f.write(code)
+                            f.write(fcode if isinstance(fcode, str) else "")
                     except Exception as e:
                         save_session(self.session_path, s)
                         return self._send(200, json.dumps({"ok": False, "error": str(e)}))

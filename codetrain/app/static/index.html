@@ -48,8 +48,10 @@
           <option value="hacker">Hacker</option>
           <option value="light">Light</option>
         </select>
+        <button class="ed-expand" id="ed-expand" type="button" title="Expand editor (Esc to exit)" aria-label="Expand editor">⤢ Expand</button>
       </div>
 
+      <div class="file-tabs" id="file-tabs" hidden></div>
       <div class="editor" id="editor-mount"></div>
 
       <div class="actions">
@@ -61,7 +63,7 @@
         <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
       </div>
       <div class="askrow">
-        <input class="note-input" id="note" placeholder="ask a question, or note what you tried…" />
+        <input class="note-input" id="note" placeholder="ask a question, note what you tried, or @mention a file…" />
         <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask ?</button>
       </div>
       <p class="run-hint" id="run-hint">Tip: <b>Run</b> to check yourself (<kbd>⌘/Ctrl+↵</kbd>). Send when green — or <b>Review my attempt</b> anytime for a walkthrough, even if it's failing.</p>

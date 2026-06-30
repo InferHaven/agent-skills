@@ -35,9 +35,9 @@ and explains what changed. It never dumps the solution on you.
   short, tailored micro-session when your *actual* code hits a teachable moment —
   one line, accept/deny, strictly throttled (never nags).
 - Two modes:
-  - **Repo mode** — learn/extend your real codebase. Edits land **in place** on
-    your current branch, so finished code is just part of your work — nothing to
-    redo. (On `main`/`master` it offers a branch first.)
+  - **Local code** — learn/extend your real codebase with your own local agent.
+    Edits land **in place** on your current branch, so finished code is just part
+    of your work — nothing to redo. (On `main`/`master` it offers a branch first.)
   - **Sandbox mode** — a throwaway project under `/tmp/codetrain-*` for
     practice or any concept not tied to a codebase. Touches none of your files.
 
