@@ -59,6 +59,9 @@ function makePrism(mount, opts) {
     setValue: (d) => { ta.value = d || ""; highlight(); gut(); syncScroll(); },
     setLanguage: (l) => { lang = l || lang; highlight(); },
     focus: () => ta.focus(),
+    // Re-align the highlight <pre> + gutter to the textarea after a layout change
+    // (e.g. the full-page pop-out toggle), which fires no scroll/input event.
+    resync: () => { highlight(); gut(); syncScroll(); },
   };
 }
 
@@ -89,6 +92,7 @@ function makeTextarea(mount, opts) {
     setValue: (d) => { ta.value = d || ""; sync(); },
     setLanguage: () => {},
     focus: () => ta.focus(),
+    resync: () => { sync(); gutter.scrollTop = ta.scrollTop; },
   };
 }
 

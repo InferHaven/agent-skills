@@ -206,11 +206,39 @@ $("reset").addEventListener("click", () => {
 $("ref").addEventListener("click", () => openReference(currentLang()));
 
 /* ---------- editor pop-out (full-page, distraction-free) ---------- */
+let edBackdrop = null;
+function ensureBackdrop() {
+  if (edBackdrop) return edBackdrop;
+  edBackdrop = document.createElement("div");
+  edBackdrop.className = "ed-backdrop"; edBackdrop.hidden = true;
+  edBackdrop.addEventListener("click", () => setEditorFullscreen(false));
+  document.body.appendChild(edBackdrop);
+  return edBackdrop;
+}
+function ensureCloseBtn() {
+  const ed = $("editor-mount"); if (!ed) return null;
+  let btn = ed.querySelector(".ed-close");
+  if (btn) return btn;
+  // Floating exit affordance — the .file-tab Expand button sits behind the overlay when zoomed,
+  // so the pop-out needs its own visible way out (Esc / backdrop also work).
+  btn = document.createElement("button");
+  btn.type = "button"; btn.className = "ed-close";
+  btn.title = "Exit full screen (Esc)"; btn.setAttribute("aria-label", "Exit full screen");
+  btn.textContent = "⤡ Exit";
+  btn.addEventListener("click", () => setEditorFullscreen(false));
+  ed.appendChild(btn);
+  return btn;
+}
 function setEditorFullscreen(on) {
   const ed = $("editor-mount"); if (!ed) return;
+  ensureBackdrop().hidden = !on;
+  ensureCloseBtn();
   ed.classList.toggle("fullscreen", on);
+  document.body.classList.toggle("ed-zoom", on);   // lock page scroll behind the overlay
   const b = $("ed-expand"); if (b) b.textContent = on ? "⤡ Exit" : "⤢ Expand";
-  if (on && editor) editor.focus();
+  // The pop-out resizes the editor with no scroll/input event, so realign the
+  // highlight + gutter to the textarea, then focus.
+  if (editor) { if (editor.resync) editor.resync(); if (on) editor.focus(); }
 }
 $("ed-expand").addEventListener("click", () => setEditorFullscreen(!$("editor-mount").classList.contains("fullscreen")));
 document.addEventListener("keydown", (e) => {
@@ -678,8 +706,9 @@ function buildStep(s) {
       seedMulti(step, s);   // tabs + per-file buffers
     } else {
       multiFiles = []; multiBuffers = {}; activeFile = null; renderFileTabs(null);
-      // Prefer this step's own file (starter_code, set for repo steps) over the previous step's
-      // stale submission — otherwise the box shows last step's text on the wrong file.
+      // Prefer this step's own file over the previous step's submission — for repo steps
+      // starter_code is the LIVE sandbox file (server overlays it), so re-editing a file shows
+      // the change committed earlier, not the wrong step's text or a stale pre-change copy.
       if (editor) editor.setValue(starterCode || (s.submission && s.submission.code) || "");
     }
     lastSeededStep = key;

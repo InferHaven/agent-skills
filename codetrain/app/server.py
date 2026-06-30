@@ -90,6 +90,45 @@ def active_step(s):
     return s.get("step") or {}
 
 
+def _read_sandbox_file(workspace, rel, cap=200_000):
+    """Current content of `rel` in the sandbox workspace, or None if absent/unreadable.
+    Path-scoped via safe_join (same guard as the submit write)."""
+    if not rel:
+        return None
+    try:
+        target = safe_join(workspace, rel)
+        with open(target, "r", encoding="utf-8") as f:
+            return f.read(cap)
+    except (OSError, ValueError):
+        return None
+
+
+def overlay_sandbox_files(workspace, data):
+    """Make the active step's editor content reflect the LIVE sandbox file, not the
+    intake-time pristine `starter_code`. The sandbox is the single source of truth: a
+    submit writes the edited file there (see do_POST), so when a later step edits the
+    same file the editor must show that committed change instead of reverting.
+
+    Mutates only the in-memory copy returned to the browser — session.json on disk is
+    left untouched (the agent owns it). No-op for files not yet written to the sandbox."""
+    if not workspace:
+        return data
+    step = active_step(data)
+    flist = step.get("files")
+    if isinstance(flist, list) and flist:
+        for fo in flist:
+            body = _read_sandbox_file(workspace, fo.get("file"))
+            if body is not None:
+                fo["starter_code"] = body
+        if flist[0].get("starter_code") is not None:
+            step["starter_code"] = flist[0]["starter_code"]
+        return data
+    body = _read_sandbox_file(workspace, step.get("file"))
+    if body is not None:
+        step["starter_code"] = body
+    return data
+
+
 def save_session(path, data):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -239,6 +278,9 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/api/state":
             with LOCK:
                 data = load_session(self.session_path)
+                # Seed the editor from the live sandbox file (the source of truth) so a
+                # change committed in an earlier step survives into later steps on the same file.
+                overlay_sandbox_files(self.workspace, data)
             if data.get("phase") == "done":
                 _arm_done_shutdown()
             return self._send(200, json.dumps(data))

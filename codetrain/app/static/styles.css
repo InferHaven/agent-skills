@@ -269,16 +269,39 @@ body {
 .celayers .cinput { z-index: 1; color: transparent; background: transparent; caret-color: var(--accent); resize: none; outline: none; }
 .celayers .cinput::selection { background: rgba(57,170,170,0.30); }
 
-/* full-page pop-out: distraction-free editing of large files */
-.editor.fullscreen {
-  position: fixed; inset: 14px; z-index: 9998; min-height: 0;
-  display: flex; flex-direction: column; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+/* full-page pop-out: distraction-free editing of large files.
+   NOTE: #editor-mount carries BOTH .editor and the editor's own layout class (.cwrap=grid /
+   .ta-wrap=grid lives one level down for the textarea fallback). The fullscreen rules must NOT
+   override that display, or the gutter/code columns collapse — so we only reposition + resize. */
+.ed-backdrop {
+  position: fixed; inset: 0; z-index: 9990;
+  background: rgba(4, 8, 11, 0.66); backdrop-filter: blur(3px);
 }
-.editor.fullscreen .cwrap { flex: 1; min-height: 0; }
+body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
+
+.editor.fullscreen {
+  position: fixed; inset: 3vmin; z-index: 9995; min-height: 0;
+  box-shadow: 0 24px 70px rgba(0,0,0,.6); border-color: var(--accent);
+}
+/* Fill the popped-out frame: the code/gutter layers drop their 60vh clamp and grow to the frame.
+   Selectors stay generic so both the Prism overlay (.cwrap=the mount itself) and the textarea
+   fallback (.ta-wrap, a child of the mount) expand. inset gives the mount a definite height; we
+   make the single grid row fill it (1fr) rather than setting height:100% (which would fight inset). */
+.editor.fullscreen.cwrap { grid-template-rows: 1fr; }
+.editor.fullscreen .ta-wrap { height: 100%; }
 .editor.fullscreen .celayers,
-.editor.fullscreen .cwrap .gutter,
+.editor.fullscreen.cwrap > .gutter,
 .editor.fullscreen .ta-wrap textarea,
 .editor.fullscreen .ta-wrap .gutter { max-height: none; height: 100%; min-height: 0; }
+/* Floating exit button, pinned top-right inside the pop-out (hidden until zoomed). */
+.ed-close { display: none; }
+.editor.fullscreen .ed-close {
+  display: inline-block; position: absolute; top: 10px; right: 12px; z-index: 2;
+  font-family: var(--mono); font-size: 0.72rem; cursor: pointer;
+  background: var(--bg-2); color: var(--ink); border: 1px solid var(--accent);
+  border-radius: 7px; padding: 5px 10px; box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.ed-close:hover { background: var(--accent); color: var(--bg); }
 .ed-expand {
   font-family: var(--mono); font-size: 0.68rem; cursor: pointer; margin-left: 6px;
   background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line-2);
