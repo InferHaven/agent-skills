@@ -280,19 +280,23 @@ body {
 body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 
 .editor.fullscreen {
-  position: fixed; inset: 3vmin; z-index: 9995; min-height: 0;
+  position: fixed; inset: 3vmin; z-index: 9995;
+  /* Explicit height (not just inset) so the editor's own grid/flex layout has a definite box to
+     fill — never relying on implicit grid-row sizing, which is what collapsed the row before and
+     crammed the text to the bottom. 6vmin = inset top+bottom. */
+  height: calc(100vh - 6vmin); min-height: 0; max-height: none;
   box-shadow: 0 24px 70px rgba(0,0,0,.6); border-color: var(--accent);
 }
-/* Fill the popped-out frame: the code/gutter layers drop their 60vh clamp and grow to the frame.
-   Selectors stay generic so both the Prism overlay (.cwrap=the mount itself) and the textarea
-   fallback (.ta-wrap, a child of the mount) expand. inset gives the mount a definite height; we
-   make the single grid row fill it (1fr) rather than setting height:100% (which would fight inset). */
-.editor.fullscreen.cwrap { grid-template-rows: 1fr; }
+/* Fill the popped-out frame. The mount IS the grid (.cwrap, columns auto/1fr): make its single row
+   fill the height so both grid cells (gutter + .celayers) stretch. The textarea fallback (.ta-wrap,
+   a child of the mount) expands the same way. Drop the 60vh clamp; the absolute .chl/.cinput layers
+   (inset:0) then fill .celayers, keeping text top-aligned and the gutter pinned in column 1. */
+.editor.fullscreen.cwrap { grid-template-rows: minmax(0, 1fr); }
 .editor.fullscreen .ta-wrap { height: 100%; }
-.editor.fullscreen .celayers,
+.editor.fullscreen.cwrap > .celayers,
 .editor.fullscreen.cwrap > .gutter,
 .editor.fullscreen .ta-wrap textarea,
-.editor.fullscreen .ta-wrap .gutter { max-height: none; height: 100%; min-height: 0; }
+.editor.fullscreen .ta-wrap .gutter { max-height: none; height: 100%; min-height: 0; align-self: stretch; }
 /* Floating exit button, pinned top-right inside the pop-out (hidden until zoomed). */
 .ed-close { display: none; }
 .editor.fullscreen .ed-close {

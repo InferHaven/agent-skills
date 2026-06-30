@@ -29,6 +29,7 @@ let greenCode = null;       // editor code that last passed ALL client cases
 let awaiting = false;
 let sentFeedbackSig = null;
 let sentView = null;
+let sawThinking = false;   // saw tutor_status flip to "thinking" since we locked (gates idle-unlock)
 
 /* ---------- theme ---------- */
 (function initTheme() {
@@ -170,7 +171,7 @@ function updateSendGate() {
     : "Run first — Send unlocks when every check passes. Stuck? Use “Review my attempt”.";
 }
 function lockSubmit() {
-  awaiting = true; sentFeedbackSig = cache.feedback; sentView = cache.view;
+  awaiting = true; sentFeedbackSig = cache.feedback; sentView = cache.view; sawThinking = false;
   const s = $("send"), r = $("review");
   s.disabled = true; r.disabled = true; s.classList.add("sent"); s.textContent = "Sent — reviewing…";
 }
@@ -313,9 +314,11 @@ function switchFile(path) {
 }
 function seedMulti(step, s) {
   multiFiles = step.files;
-  const prior = (s.submission && s.submission.files) || {};
   multiBuffers = {};
-  multiFiles.forEach((f) => { multiBuffers[f.file] = prior[f.file] != null ? prior[f.file] : (f.starter_code || ""); });
+  // Seed each tab from its own file's content (starter_code = LIVE sandbox after the server
+  // overlay, so accumulated edits show). Don't prefer s.submission.files — that global slot holds
+  // the previous step's buffers and would leak the wrong files into a new multi-file step.
+  multiFiles.forEach((f) => { multiBuffers[f.file] = f.starter_code || ""; });
   activeFile = null;
   switchFile(multiFiles[0].file);
 }
@@ -706,10 +709,11 @@ function buildStep(s) {
       seedMulti(step, s);   // tabs + per-file buffers
     } else {
       multiFiles = []; multiBuffers = {}; activeFile = null; renderFileTabs(null);
-      // Prefer this step's own file over the previous step's submission — for repo steps
-      // starter_code is the LIVE sandbox file (server overlays it), so re-editing a file shows
-      // the change committed earlier, not the wrong step's text or a stale pre-change copy.
-      if (editor) editor.setValue(starterCode || (s.submission && s.submission.code) || "");
+      // Seed ONLY from this step's own file content. For repo steps `starter_code` is the LIVE
+      // sandbox file (server overlays it), so re-editing a file shows the edits committed in
+      // earlier steps. NEVER fall back to s.submission.code — that's a single global slot holding
+      // the PREVIOUS step's text, which leaked the wrong file's content into a new step's editor.
+      if (editor) editor.setValue(starterCode || "");
     }
     lastSeededStep = key;
   }
@@ -780,7 +784,13 @@ function render(s) {
   updateFeedback(s.feedback);
   updateTests(activeTests(s));
   $("paused-banner").hidden = (s.tutor_status !== "paused");
-  if (awaiting && (cache.feedback !== sentFeedbackSig || cache.view !== sentView)) unlockSubmit();
+  // Unlock the buttons when the turn resolves. Normally that's new feedback or a step change — but
+  // an error whose text matches the previous feedback wouldn't change the signature, so ALSO unlock
+  // whenever the tutor returns to idle (listening/paused) after we sent a turn. Without this, a
+  // repeated error (e.g. "input too large" twice) leaves the buttons stuck on "Sent — reviewing…".
+  if (awaiting && s.tutor_status === "thinking") sawThinking = true;
+  const idle = (s.tutor_status === "listening" || s.tutor_status === "paused") && sawThinking;
+  if (awaiting && (cache.feedback !== sentFeedbackSig || cache.view !== sentView || idle)) unlockSubmit();
 }
 
 /* ---------- boot ---------- */
