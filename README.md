@@ -13,8 +13,11 @@ tutor that walks you through real code, has you type each line yourself, and
 keeps a lightweight memory of what you have learned. Your code never leaves your
 machine.
 
-- **Install:** `cd codetrain && ./install.sh`
-- **Then** restart Claude Code and say "teach me this code" or "walk me through
+- **Install:** `npx skills add InferHaven/agent-skills` (the
+  [skills CLI](https://skills.sh) targets Claude Code, Codex, Cursor, OpenCode,
+  and other agent harnesses).
+- **Or manually:** clone this repo, then `cd codetrain && ./install.sh`.
+- **Then** restart your agent and say "teach me this code" or "walk me through
   this".
 - **Details:** [`codetrain/README.md`](./codetrain/README.md).
 
