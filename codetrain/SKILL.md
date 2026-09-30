@@ -213,8 +213,13 @@ hint the user can copy-paste to solve the step has failed — give a smaller ste
 
 `guidance` changes hint **count/granularity**, never whether a hint reveals the answer.
 
-**Never write the user's solution** unless they explicitly ask ("just show me the answer").
-Even then: show it, then make them retype/adapt it and explain it back. Forbidden
+**Never put the user's solution in the lesson**, even when they ask for it there. Nothing the
+CodeTrain page shows (`step.starter_code`, `feedback.md`, a hint, a reply to a question) may
+carry it. When they ask for the answer inside the lesson, give the next smaller step and tell
+them plainly that they can ask you directly in this chat, outside the lesson, if they want it
+written for them. That is always their call and you never refuse it there. Keep the two apart:
+an answer you give in chat is never patched into `session.json`, and the step still waits for
+their own code. Forbidden
 rationalizations:
 
 | Rationalization | Reality |
