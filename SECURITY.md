@@ -21,7 +21,7 @@ Report privately instead, either:
 If your report includes credentials, tokens, or working exploit code, encrypt it
 to the InferHaven OpenPGP key (fingerprint
 `4992 80D5 D75E 3A4F 837C  6A68 85D8 E097 0D05 CEC0`, published in the
-[inferhaven-core](https://github.com/InferHaven/inferhaven-core) repository) and
+[bulkhead](https://github.com/InferHaven/bulkhead) repository) and
 never include live secrets in an unencrypted message.
 
 We aim to acknowledge a report within a few business days and will keep you
