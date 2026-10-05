@@ -179,6 +179,15 @@ Editor (Prism) + instant **Run**:
   check, use `bash $SKILL_DIR/app/ctl.sh run <session-dir>` (allow-listed). **Never** run the
   user's bash with raw `Bash(...)`.
 
+**Accuracy (the same rules CodeTrain's other tutors follow):**
+- **Honest about runs.** Code has run only when its output is in front of you: the payload's
+  `client_tests`, or a `ctl.sh run` you made. Without that it is written code, not a run: review
+  it as written and say so, and never claim an output, a passing test or a successful command
+  you have not seen.
+- **Decide, then write.** Settle the verdict before you patch `feedback.md`; never think out loud
+  or reverse yourself in it ("wait, actually…"). If you are unsure, resolve it from the code in
+  the payload instead of guessing aloud.
+
 **Token discipline — this is the difference between cheap and costly:**
 - Author the lesson ONCE; after that, change only deltas.
 - **Patch via the file** (above) — never re-emit the whole `session.json`.
