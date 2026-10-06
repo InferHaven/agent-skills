@@ -52,6 +52,8 @@ Install with the skills CLI:
 npx skills add InferHaven/agent-skills
 ```
 
+`npx skills add` runs the skills CLI from npm, which needs Node.js 22.20 or later. Check yours with `node --version`; on an older Node.js, the `git clone` commands install the same skill into `~/.claude/skills/codetrain` and need no Node.js at all.
+
 It finds one skill, `codetrain`. A project install puts the skill in `.agents/skills/codetrain` with a link at `.claude/skills/codetrain`. To install it for your user instead of the current project, and to name the agents you use it with:
 
 ```bash
