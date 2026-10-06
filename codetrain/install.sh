@@ -34,7 +34,9 @@ fi
 rm -rf "$DEST"
 mkdir -p "$DEST"
 cp -R "$SRC/SKILL.md" "$SRC/app" "$SRC/references" "$DEST/"
-[ -f "$SRC/README.md" ] && cp "$SRC/README.md" "$DEST/" || true
+for f in README.md LICENSE NOTICE; do
+  if [ -f "$SRC/$f" ]; then cp "$SRC/$f" "$DEST/"; fi
+done
 chmod +x "$DEST/app/server.py" "$DEST/app/watch.sh" "$DEST/app/ctl.sh" \
          "$DEST/app/patch.py" "$DEST/app/checkpoint-hook.sh" \
          "$DEST/app/install-permissions.py" 2>/dev/null || true

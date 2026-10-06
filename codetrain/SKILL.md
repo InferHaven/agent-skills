@@ -1,6 +1,11 @@
 ---
 name: codetrain
-description: Use when the user wants to be taught/walked through code one tiny step at a time — triggers like "teach me this code", "walk me through this", "hold my hand", "explain step by step", "tutor me", "guide me through", "I want to learn this", or asks for a safe practice exercise to learn a concept.
+description: CodeTrain is an open-source Socratic coding tutor with a local lesson page where the learner writes every line while the agent sets small steps, gives hints and reviews the work without putting the solution into the lesson. Use when the user wants to be taught/walked through code one tiny step at a time — triggers like "teach me this code", "walk me through this", "hold my hand", "explain step by step", "tutor me", "guide me through", "I want to learn this", or asks for a safe practice exercise to learn a concept.
+license: Apache-2.0
+compatibility: Requires python3 (standard library only) and a web browser; docker or podman is optional, for running bash steps from the page. Tested in Claude Code 2.1.291, OpenCode 1.18.34 and Antigravity CLI 1.3.0, each from a plain request with every stage passing, and partly in Codex CLI 0.128.0. Cursor, GitHub Copilot and Gemini CLI were not tested.
+metadata:
+  homepage: https://codetrain.ai
+  source: https://github.com/InferHaven/agent-skills/tree/main/codetrain
 ---
 
 # CodeTrain

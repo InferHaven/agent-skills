@@ -49,8 +49,9 @@ By design, and therefore **not** vulnerabilities on their own:
 - The skill reads and writes files in the workspace you point it at — that is its
   job.
 - It runs code you provide, locally, on your machine and in your browser.
-- It uses your own AI agent and key; it does not phone home or send your code
-  anywhere.
+- It uses your own AI agent and key; it does not phone home, and what it reads,
+  your code included, goes only to your agent's own model provider, as it does for
+  any task.
 
 ## A note on secrets
 

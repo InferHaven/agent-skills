@@ -5,9 +5,9 @@ practice exercises, and pedagogy improvements are all welcome.
 
 ## Ground rules
 
-- The skill is the free, single-player, bring-your-own-Claude tutor. Keep it
-  local-first: no telemetry, no analytics, and no network calls beyond what a
-  learner explicitly runs. Nothing should phone home.
+- The skill is the free, single-player tutor that runs in the learner's own
+  coding agent. Keep it local-first: no telemetry, no analytics, and no network
+  calls beyond what a learner explicitly runs. Nothing should phone home.
 - Match the existing style. Keep pull requests focused and easy to review.
 
 ## Developer Certificate of Origin (DCO)
