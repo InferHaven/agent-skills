@@ -36,6 +36,7 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -215,22 +216,31 @@ RUNTIME, RUN_IMAGE = detect_runtime()
 
 
 def run_in_container(workspace, code):
-    """One-shot, sandboxed bash exec → {stdout, stderr, exit} or {error}."""
+    """One-shot, sandboxed bash exec → {stdout, stderr, exit} or {error}.
+
+    The container runs under `--init` and has a name, and a timeout ends in `kill <name>`.
+    Killing the docker/podman CLI never stops its container, and without an init the
+    learner's program is PID 1, which ignores any signal it has no handler for: a loop that
+    "timed out" kept a CPU busy with nothing left to stop it. (CodeTrain's hosted sandbox
+    runner had the same bug and the same fix.)"""
     if not RUNTIME or not RUN_IMAGE:
         return {"error": "no container runtime"}
     path = None
+    name = "codetrain-run-%s" % uuid.uuid4().hex[:12]
     try:
         fd, path = tempfile.mkstemp(prefix=".run-", suffix=".sh", dir=workspace)
         with os.fdopen(fd, "w") as f:
             f.write(code or "")
-        cmd = ["timeout", str(RUN_TIMEOUT), RUNTIME, "run", "--rm", "--network=none",
+        cmd = [RUNTIME, "run", "--rm", "--init", "--name", name, "--network=none",
                "--memory=256m", "--pids-limit=128",
                "-v", "%s:/work" % os.path.realpath(workspace), "-w", "/work",
                RUN_IMAGE, "sh", "/work/" + os.path.basename(path)]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=RUN_TIMEOUT + 5)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=RUN_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            subprocess.run([RUNTIME, "kill", name], capture_output=True, timeout=15)
+            return {"stdout": "", "stderr": "timed out", "exit": 124}
         return {"stdout": proc.stdout, "stderr": proc.stderr, "exit": proc.returncode}
-    except subprocess.TimeoutExpired:
-        return {"stdout": "", "stderr": "timed out", "exit": 124}
     except Exception as e:
         return {"error": str(e)}
     finally:
