@@ -37,21 +37,35 @@ Requires `python3`. Prompt-free via `app/install-permissions.py` (a scoped, audi
 allow-list the user runs once). Other references, loaded only when relevant:
 `spaced-repetition.md` (review/drill), `teach-on-diff.md` (PR/diff lessons).
 
-## Memory & progress (token-cheap)
+## Memory & progress (private by default)
 
-CodeTrain remembers the learner across sessions in small files under
-`$HOME/.codetrain/`: `profile.json` (compact — languages+level, goals, strengths,
-**scheduled gaps**, notes, streak, totals) and `history/<date>-<slug>.md` (one summary
-per finished session).
+CodeTrain remembers the learner across sessions in `$HOME/.codetrain/` (`profile.json` and
+one `history/<date>-<slug>.md` per finished lesson). **Never Read, Write or Edit those files
+yourself**: whatever you read goes to your model provider, so you work from a short brief and
+the files stay on the learner's machine.
 
-- **At start, Read ONLY `profile.json`** (Read tool, one small file): greet a returning
-  learner, default their level, suggest a topic, and if any **gap is due** (`due` ≤ today)
-  offer a quick **review drill** (spaced repetition — see `references/spaced-repetition.md`).
-  Surface it via the `profile` block + intake `intro`. Do **not** read `history/` unless
-  resuming a specific past session.
-- **At end, write two small files** (Write/Edit tools): append `history/<date>-<slug>.md`
-  and update `profile.json` (**reschedule reviewed gaps + log new ones**). First run / no
-  profile: create the dir + a fresh `profile.json`. Local-only data — no secrets.
+- **At start, run `bash $SKILL_DIR/app/ctl.sh profile`** (standalone). It prints a small JSON
+  brief: `returning`, `level`, `languages`, `sessions`, `streak`, `concepts`, `last_session`,
+  `latest_goal`, and the gaps **due now** (`due_gaps`, oldest first). Greet a returning
+  learner, default their level, suggest a topic, and if gaps are due offer a quick **review
+  drill** (spaced repetition — see `references/spaced-repetition.md`). Surface it via the
+  `profile` block + intake `intro`. Strengths, notes, other gaps and past lessons are left out
+  (`not_shared` counts them); only when the learner asks you to use them, run
+  `bash $SKILL_DIR/app/ctl.sh profile full`.
+- **At end, record the lesson** with one file and one command: Write
+  `<session-dir>/.tutor/profile-delta.json`, then run
+  `bash $SKILL_DIR/app/ctl.sh profile-update <session-dir>`. The script updates totals, the
+  streak and the review schedule, appends the history summary, and deletes the delta. A first
+  run needs nothing special. Local-only data — no secrets.
+
+```jsonc
+{"title": "…", "level": "beginner", "language": "python", "goal": "the intake goal, verbatim",
+ "learned": ["concept that landed"],
+ "reviewed": [{"concept": "a due gap you drilled", "result": "solid|shaky"}],
+ "new_gaps": [{"concept": "what they struggled with", "lang": "python"}], "summary_md": "the recap"}
+```
+`solid` = passed with ≤1 hint and could explain it back; `shaky` = needed several hints,
+retried, or could not explain it.
 
 ## Choosing a mode
 
@@ -127,7 +141,7 @@ The only full `session.json` Write is at creation (authoring `steps[]`).
 
 ## The tutoring loop (one path)
 
-1. **Set up.** Read `profile.json` (Read tool). Pick the mode. Make a session dir:
+1. **Set up.** Run `bash $SKILL_DIR/app/ctl.sh profile` (the brief). Pick the mode. Make a session dir:
    `bash $SKILL_DIR/app/ctl.sh sandbox` (prints a `/tmp/codetrain-*` path — use it even for
    local-code sessions, so state stays allow-listed). Write the `phase:"intake"` `session.json` (Write
    tool). Serve it:
@@ -199,8 +213,8 @@ Editor (Prism) + instant **Run**:
 - **≤2–3 tool calls/turn** (Write `patch.json`, `ctl.sh patch`, `ctl.sh watch` re-arm; plus
   `ctl.sh run` only when needed). **Never poll. One watcher at a time.**
 - **Prompt-free:** call `ctl.sh` **standalone** (never inside a pipe / `;` / `&&` / `$( )`);
-  do file I/O with the **Read/Write/Edit tools** (sandbox, profile, and skill paths are
-  allow-listed), never bash `cat`/`echo`/heredocs.
+  do file I/O with the **Read/Write/Edit tools** (sandbox and skill paths are allow-listed;
+  the profile goes through `ctl.sh`), never bash `cat`/`echo`/heredocs.
 
 The **Ask** button sends a `question`. **End session** sends `end`. **Idle:** on `TIMEOUT`
 re-arm silently; after a few idle cycles with no events, patch `tutor_status:"paused"` and
@@ -250,9 +264,8 @@ Triggered by goal met / user stops / **End session** (`end`):
 1. Patch `phase:"done"`, a warm **celebratory** `title`, and `summary_md` (what they built,
    2–4 concepts that landed, one next challenge). The UI fires confetti + a Copy-recap button.
 2. Ensure `learned` holds every concept (it shows in the rail).
-3. **Save progress** (2 small writes): append `history/<date>-<slug>.md`; update
-   `profile.json` (totals, streak by date, strengths; reschedule reviewed gaps + log new ones —
-   `references/spaced-repetition.md`).
+3. **Save progress**: Write `.tutor/profile-delta.json`, then
+   `bash $SKILL_DIR/app/ctl.sh profile-update <session-dir>` (see Memory & progress).
 4. **Do NOT stop the server** — leave it running so the recap + confetti render; it
    **self-exits ~90s** after the browser shows the done screen. (Stopping it the instant you
    patch `done` races the browser's poll and freezes the page on "reviewing".) Repo code is

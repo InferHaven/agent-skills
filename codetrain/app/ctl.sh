@@ -11,6 +11,8 @@
 #   ctl.sh stop  <session-dir>             # stop the server for this session
 #   ctl.sh patch <session-dir>             # apply .tutor/patch.json (write it with the Write tool)
 #   ctl.sh run   <session-dir>             # run the active step's tests.cmd / submitted file
+#   ctl.sh profile [full]                  # the learner's brief (full profile only when they ask)
+#   ctl.sh profile-update <session-dir>    # apply .tutor/profile-delta.json (write it first)
 #
 # Call each command STANDALONE (never inside a pipe, `;`, `&&`, or `$( )`) so one
 # `Bash(bash .../ctl.sh:*)` allow-rule covers the whole live loop prompt-free.
@@ -74,5 +76,12 @@ PY
       echo "(nothing to run for this step)"
     fi
     ;;
-  *) echo "usage: ctl.sh {sandbox|serve|watch|stop|patch|run} <workspace>" >&2; exit 2 ;;
+  profile)
+    # The tutor never reads ~/.codetrain itself: it gets this brief instead.
+    if [ "${2:-}" = "full" ]; then exec python3 "$HERE/profile.py" brief --full; fi
+    exec python3 "$HERE/profile.py" brief ;;
+  profile-update)
+    [ -n "$ws" ] || { echo "usage: ctl.sh profile-update <session-dir>  (write .tutor/profile-delta.json first)" >&2; exit 2; }
+    exec python3 "$HERE/profile.py" update "$ws/.tutor/profile-delta.json" ;;
+  *) echo "usage: ctl.sh {sandbox|serve|watch|stop|patch|run|profile|profile-update} <workspace>" >&2; exit 2 ;;
 esac

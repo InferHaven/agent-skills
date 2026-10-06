@@ -2,8 +2,8 @@
 
 CodeTrain remembers what a learner struggled with and resurfaces it at widening
 intervals — so a weak concept gets re-practised right before it would fade, then
-less and less often as it sticks. You (the tutor) compute all of this **by hand**
-from the small `profile.json`; there is no extra code or library.
+less and less often as it sticks. `app/profile.py` applies all of this; you only
+report results (see SKILL.md, "Memory & progress"), and you never read `profile.json`.
 
 ## The gap record
 
@@ -25,7 +25,7 @@ with `interval_days: 1`, `ease: 2.0`, `due` = today, and upgrade it to the objec
 form the next time you touch it. Keep `gaps` small (cap ~12 — drop the oldest that's
 been mastered).
 
-## Scheduling (SM-2-lite — trivial mental math)
+## Scheduling (SM-2-lite — applied by `ctl.sh profile-update`)
 
 "Due" means `due` ≤ today (UTC date). After a review, update the gap:
 
@@ -46,14 +46,15 @@ been mastered).
 Triggered by "review my weak spots", "drill me", "spaced review", "what should I
 revisit" — or offered at session start when gaps are due.
 
-1. Read `profile.json`; compute the **due** gaps (`due` ≤ today).
+1. Run `bash $SKILL_DIR/app/ctl.sh profile`; its `due_gaps` are the **due** gaps, oldest first.
 2. Pick the 1–3 most-overdue concepts (oldest `due` first). Author a short
    **sandbox** session: one tiny step per concept, each a **fresh** micro-drill on
    that idea (a new angle — not a replay of the old exercise). Set the `profile`
    welcome to name the count ("2 topics are due — quick drill?").
 3. Run the normal steps / patch / run loop. After each drill, judge solid vs shaky.
-4. At teardown, **reschedule** each reviewed gap per the rule above, **log** any new
-   gaps that surfaced, and save the profile as usual.
+4. At teardown, list each reviewed gap as `solid` or `shaky` in `reviewed`, and any new
+   trouble spots in `new_gaps`, of `.tutor/profile-delta.json`; `ctl.sh profile-update`
+   applies the rule above.
 
 If gaps are due but the user asked for a *specific* lesson, don't hijack it: either
 weave one due concept in as the warm-up first step, or mention it once ("heads-up:

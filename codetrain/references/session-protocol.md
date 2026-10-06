@@ -3,7 +3,8 @@
 `SKILL.md` is self-sufficient for a normal session — **read this only for an edge case**
 (an unusual field, the full inbox table, debugging the server). It's the complete contract
 between **you (the tutor brain)** and the **web UI**: the server is dumb (serves the UI +
-one JSON file, **never executes user code**); you edit that file each turn via small
+one JSON file, and **runs no user code** except an optional bash step in a throwaway,
+network-disabled container); you edit that file each turn via small
 patches; the browser polls (~1.2s) and renders; a background watcher wakes you on the
 user's actions (see "The auto-review loop").
 
@@ -59,13 +60,9 @@ rewrites your other rules). `<SKILL_DIR>` and `<HOME>` are written out in full:
 
 ```json
 { "permissions": { "allow": [
-  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",         // sandbox/serve/watch/patch/run/stop — the whole loop
+  "Bash(bash <SKILL_DIR>/app/ctl.sh:*)",         // sandbox/serve/watch/patch/run/stop/profile — the whole loop
   "Read(//tmp/codetrain-*/**)",                  // sandbox + session state + patch.json
-  "Write(//tmp/codetrain-*/**)",
-  "Edit(//tmp/codetrain-*/**)",
-  "Read(//<HOME>/.codetrain/**)",         // learner profile + history
-  "Write(//<HOME>/.codetrain/**)",
-  "Edit(//<HOME>/.codetrain/**)",
+  "Edit(//tmp/codetrain-*/**)",                  // Edit rules cover every file-writing tool, Write included
   "Read(//<HOME>/.claude/skills/codetrain/**)",  // the skill's own references the tutor reads
   "Bash(mktemp -d /tmp/codetrain-*)",            // direct mktemp (ctl.sh sandbox also covers this)
   "Bash(git diff:*)"                             // real-code review / teach-on-diff (read-only)
@@ -81,7 +78,8 @@ segment of a compound/piped command, so one non-listed segment makes the whole t
 prompt. So: call `ctl.sh` **standalone** (never in `|`, `;`, `&&`, or `$( )`); patch by
 **writing `<ws>/.tutor/patch.json` with the Write tool** then `ctl.sh patch <ws>` (never
 `printf … | …` or a JSON shell-arg — they break on quotes/parens and prompt); do file I/O
-with the **Read/Write/Edit tools** (sandbox + profile + skill paths are listed), not bash
+with the **Read/Write/Edit tools** (sandbox + skill paths are listed; the profile goes through
+`ctl.sh profile`), not bash
 `cat`/`echo`/heredocs; make the sandbox with `ctl.sh sandbox`; run a bash step via
 `ctl.sh run <ws>`. This is what actually keeps a live session prompt-free.
 
@@ -125,7 +123,7 @@ paths work.
   "intro": "one warm line for the intake screen",     // optional
   "progress": { "step": 1, "total": null },           // total optional
   "tutor_status": "listening",       // listening | thinking | waiting_for_you | paused
-  "profile": {                       // optional; rail widget + "welcome back" (from profile.json)
+  "profile": {                       // optional; rail widget + "welcome back" (from `ctl.sh profile`)
     "welcome": "Welcome back — last time you tackled loops.",
     "streak": 3, "sessions": 4, "concepts": 11
   },
@@ -283,21 +281,21 @@ skill's scripts; patch by **writing `.tutor/patch.json`** (not a full session wr
 Use sandbox for any request not tied to the current codebase (a random concept, a
 generic exercise) — even if the user happens to be inside a repo.
 
-## Learner memory (cheap)
+## Learner memory (private)
 
-`profile.json` (small) is the cross-session memory. **Start:** read it *only* — to
-greet, default the level, suggest a topic, and resurface **due gaps** as a quick
-review drill (spaced repetition); surface via the `profile` block + intake `intro`.
-**End:** append `history/<date>-<slug>.md` and update `profile.json` (totals, streak
-by date, strengths; **reschedule reviewed gaps + log new ones**). Gaps are scheduled
-records (`due`/`interval_days`/`ease`) — see `references/spaced-repetition.md`. Never
-load `history/` into context unless resuming a specific past session.
+`profile.json` and `history/` live in `$HOME/.codetrain/`, and you never open them: what you
+read goes to your model provider. **Start:** `ctl.sh profile` prints a brief (level,
+languages, counts, latest goal, due gaps) — greet, default the level, suggest a topic, and
+resurface **due gaps** as a quick review drill; surface via the `profile` block + intake
+`intro`. `ctl.sh profile full` only when the learner asks to share the rest. **End:** Write
+`.tutor/profile-delta.json` and run `ctl.sh profile-update <ws>`: it updates totals, the
+streak, the review schedule (`references/spaced-repetition.md`) and the history summary.
 
 ## Teardown
 
 - Write the final recap first: `phase:"done"`, celebratory `title`, `summary_md`,
   full `learned` list — so the last screen is the summary (confetti fires in the UI).
-- **Save progress:** append a `history/` summary + update `profile.json` (2 small writes).
+- **Save progress:** Write `.tutor/profile-delta.json`, then `ctl.sh profile-update <ws>`.
 - **Do NOT stop the server** — it self-exits ~90s after the browser renders `done`, so the
   recap + confetti show. (Stopping it the instant you patch `done` races the poll and freezes
   the page on "reviewing".) The watcher exits on its own. (`ctl.sh stop <session-dir>` remains
