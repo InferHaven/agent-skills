@@ -185,6 +185,17 @@ body {
   border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0 0 1em;
 }
 
+/* What the answer guard held back, behind a click (same rules as the hosted tutor's page).
+   Quieter than a code block the tutor meant you to read: dashed edge, never a call to action. */
+details.held { margin: 0 0 1em; font-size: 0.9rem; }
+details.held summary { cursor: pointer; color: var(--ink-soft); display: inline-block; }
+details.held summary:hover { color: var(--ink); }
+details.held pre.code {
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; color: var(--ink);
+  background: var(--bg); border: 1px dashed var(--line);
+  border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 8px 0 0;
+}
+
 .task {
   margin-top: 18px; padding: 14px 16px; border-radius: 10px;
   background: var(--bg); border: 1px dashed var(--line-2);

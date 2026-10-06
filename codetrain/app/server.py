@@ -39,6 +39,9 @@ import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import answer_guard  # noqa: E402  (a sibling file in this folder)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Lock()
 
@@ -293,7 +296,9 @@ class Handler(BaseHTTPRequestHandler):
                 overlay_sandbox_files(self.workspace, data)
             if data.get("phase") == "done":
                 _arm_done_shutdown()
-            return self._send(200, json.dumps(data))
+            # The page sees the session with any span that writes a step out held back
+            # (answer_guard.py); session.json on disk stays as the tutor wrote it.
+            return self._send(200, json.dumps(answer_guard.guard_state(data)))
         if p == "/api/runtime":
             return self._send(200, json.dumps({"bash": bool(RUNTIME and RUN_IMAGE), "runtime": RUNTIME}))
         if p == "/api/profile":

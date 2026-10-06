@@ -596,14 +596,22 @@ function updateUsage(u) {
   if (u.cost_used_pct != null) bits.push(`<span class="pchip">${esc(u.cost_used_pct)}% used</span>`);
   wrap.innerHTML = `<h2>Plan &amp; usage</h2><div class="pchips">${bits.join("")}</div>`;
 }
+// What the answer guard (app/answer_guard.py) held back, behind a click. Same contract as the
+// hosted tutor's copy: closed by default, and every span is escaped on its way into the <pre>.
+function heldHtml(held) {
+  if (!Array.isArray(held) || !held.length) return "";
+  return `<details class="held"><summary>Show it anyway</summary>`
+    + `<pre class="code">${held.map((s) => esc(s)).join("\n")}</pre></details>`;
+}
 function updateFeedback(fb) {
-  const sig = fb ? (fb.status || "none") + " " + (fb.md || "") + " " + JSON.stringify(fb.checks || []) : "none";
+  const sig = fb ? (fb.status || "none") + " " + (fb.md || "") + " " + JSON.stringify(fb.checks || [])
+    + " " + JSON.stringify(fb.held || null) : "none";
   if (sig === cache.feedback) return;
   cache.feedback = sig;
   const wrap = $("feedback-wrap");
   if (!fb || !fb.status || fb.status === "none") { wrap.innerHTML = ""; return; }
   const label = { pass: "nice — that works", retry: "not yet — let's adjust", comment: "from your tutor" }[fb.status] || "from your tutor";
-  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div>${checksHtml(fb.checks)}</div>`;
+  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div>${heldHtml(fb.held)}${checksHtml(fb.checks)}</div>`;
   // Make it obvious where the tutor replied (esp. nudges): pull it into view + flash once.
   const box = wrap.firstElementChild;
   if (box) {
@@ -683,7 +691,7 @@ function buildStep(s) {
     ${step.task_md ? `<div class="task"><p class="eyebrow">your task</p><div class="md">${md(step.task_md)}</div></div>` : ""}
     <div class="hints" id="hints"><button class="hint-btn" id="hint-btn">Need a nudge?</button></div>`;
   revealedHints = 0;
-  wireHints(hints);
+  wireHints(hints, step.hints_held || []);
 
   showWork(true);
   setText($("file-name"), step.file || "scratch");
@@ -742,7 +750,7 @@ function buildDone(s) {
 function showWork(on) {
   document.querySelector(".work").style.display = on ? "" : "none";
 }
-function wireHints(hints) {
+function wireHints(hints, hintsHeld) {
   const btn = $("hint-btn"), wrap = $("hints");
   btn.addEventListener("click", () => {
     if (revealedHints < hints.length) {
@@ -751,6 +759,8 @@ function wireHints(hints) {
       const h = document.createElement("p"); h.className = "hint";
       h.innerHTML = `<b>nudge ${i + 1}.</b> ${mdInline(hints[i])}`;
       wrap.insertBefore(h, btn);
+      const held = heldHtml((hintsHeld || [])[i]);
+      if (held) { const d = document.createElement("div"); d.innerHTML = held; wrap.insertBefore(d.firstChild, btn); }
       post({ type: "hint", level: revealedHints });
       return;
     }
