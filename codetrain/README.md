@@ -3,7 +3,7 @@
 CodeTrain is an open-source Socratic coding tutor that runs as an Agent Skill inside your own coding agent. It is free and Apache 2.0 licensed. You write every line of code yourself. The agent sets small steps, gives hints, reviews what you wrote, and never puts the solution into the lesson.
 
 ```bash
-npx skills add InferHaven/agent-skills
+npx skills add InferHaven/agent-skills --skill codetrain
 ```
 
 ![Step 1 of 4, "Your first comprehension", on the lesson page: the editor with the starter code, the three checks, the tutor's "not yet" review, and the progress panel.](../docs/lesson-page.png)
@@ -49,16 +49,16 @@ You need `python3` (standard library only, nothing to install with pip) and a we
 Install with the skills CLI:
 
 ```bash
-npx skills add InferHaven/agent-skills
+npx skills add InferHaven/agent-skills --skill codetrain
 ```
 
 `npx skills add` runs the skills CLI from npm, which needs Node.js 22.20 or later. Check yours with `node --version`; on an older Node.js, the `git clone` commands install the same skill into `~/.claude/skills/codetrain` and need no Node.js at all.
 
-It finds one skill, `codetrain`. A project install puts the skill in `.agents/skills/codetrain` with a link at `.claude/skills/codetrain`. To install it for your user instead of the current project, and to name the agents you use it with:
+A project install puts the skill in `.agents/skills/codetrain` with a link at `.claude/skills/codetrain`. To install it for your user instead of the current project, and to name the agents you use it with:
 
 ```bash
-npx skills add InferHaven/agent-skills -g
-npx skills add InferHaven/agent-skills -g -a claude-code codex opencode
+npx skills add InferHaven/agent-skills --skill codetrain -g
+npx skills add InferHaven/agent-skills --skill codetrain -g -a claude-code codex opencode
 ```
 
 Or install by hand:
@@ -156,7 +156,7 @@ Three things carry the CodeTrain name and they are not the same product. This re
 | Which model does the tutoring | Your agent's model, billed by whoever already bills that agent | Its own tutor, talking to `api.codetrain.ai` | Managed models |
 | Account | None | A CodeTrain account for lessons | A CodeTrain account |
 | Cost | Free | Free plan (10 lessons a month, no card) and paid plans | Free plan (10 lessons a month, no card) and paid plans, [prices here](https://codetrain.ai/#pricing) |
-| How to start | `npx skills add InferHaven/agent-skills` | `pip install codetrain-cli` | Start free at [codetrain.ai](https://codetrain.ai) |
+| How to start | `npx skills add InferHaven/agent-skills --skill codetrain` | `pip install codetrain-cli` | Start free at [codetrain.ai](https://codetrain.ai) |
 
 The skill uses your own agent and model account, has no CodeTrain servers, and is single-player. The hosted plans add managed models with no setup, cross-device profile sync, and team features such as dashboards and onboarding journeys.
 

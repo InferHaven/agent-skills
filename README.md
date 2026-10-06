@@ -17,8 +17,10 @@ A lesson happens on a small local web page with an editor, a Run button that che
 Install with the skills CLI:
 
 ```bash
-npx skills add InferHaven/agent-skills
+npx skills add InferHaven/agent-skills --skill codetrain
 ```
+
+Without `--skill`, the command above lists every skill in this repository and installs the ones you pick. With `-y`, or when an AI coding agent runs it (the CLI detects Claude Code, OpenCode, Cursor, Codex, Antigravity and others), it skips the list and installs every skill. Use `--skill <name>` to install only the skills you name, several names for several, or `--skill '*'` for all of them.
 
 `npx skills add` runs the skills CLI from npm, which needs Node.js 22.20 or later. Check yours with `node --version`; on an older Node.js, the `git clone` commands install the same skill into `~/.claude/skills/codetrain` and need no Node.js at all.
 
