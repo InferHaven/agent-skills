@@ -128,6 +128,8 @@ paths work.
     "streak": 3, "sessions": 4, "concepts": 11
   },
   "summary_md": "",                  // recap shown on the done screen (phase:"done")
+  "persona": "plain",                // from intake: the tutor voice (SKILL.md, Guidance)
+  "reference": [],                   // optional lesson card behind Ref: [{snippet, note}]
 
   // PREFERRED: author the whole lesson ONCE as steps:[{…}, …] — the UI renders the
   // active one by progress.step, and each step may carry its own "tests". Advancing
@@ -143,10 +145,12 @@ paths work.
     "hints": ["gentle nudge", "more specific", "almost the answer"],
     "file": "main.py",               // relative to workspace; Send writes here
     "lang": "python",                // editor label only
-    "starter_code": "def parse(path):\n    pass\n"
+    "starter_code": "def parse(path):\n    pass\n",
+    "mcq": null,                     // optional concept check, in place of code (below)
+    "visual": null                   // optional picture: flow | table (below)
   },
 
-  "feedback": { "status": "none", "md": "" },   // "none"|"pass"|"retry"|"comment"
+  "feedback": { "status": "none", "md": "" },   // "none"|"pass"|"retry"|"comment"; may add "visual"
   "tests": {
     "lang": "python",            // python|javascript -> editor highlight + browser RUN;
                                  // bash|shell|others -> highlight only, you run them
@@ -174,8 +178,8 @@ Every browser action appends `{ "ts": <epoch>, "type": ..., ... }` to `inbox`:
 
 | type | payload | meaning |
 |------|---------|---------|
-| `intake` | `level`, `goal` | intake done — **wakes you** to author the lesson (server also sets top-level `level`/`goal`) |
-| `submit` | `code`, `note` | user sent code; server wrote it to the active step's `file` and set `submission` |
+| `intake` | `level`, `goal`, `persona` | intake done — **wakes you** to author the lesson (server also sets top-level `level`/`goal`/`persona`) |
+| `submit` | `code`, `note` (or `choice` on an `mcq` step) | user sent code; server wrote it to the active step's `file` and set `submission`. On a concept check, `choice` is the 0-based option they picked |
 | `hint` | `level` | user revealed a nudge — **never wakes you**; note they're stuck |
 | `question` | `text`, `code` | the *Ask* button — answer as `feedback` `comment`, keep the step |
 | `end` | — | *End session* button — done screen + save progress |
@@ -188,6 +192,42 @@ wants a full walkthrough **even if the code fails**: always give the substantive
 Socratic review, never the brief/skip path. The user may submit failing code
 anytime; never refuse it. After handling, clear the inbox via the patch
 `clear_inbox: true` (below).
+
+## Pictures, concept checks and the reference card
+
+All optional. The page builds each one with plain text (no HTML, no markdown), and drops one it
+cannot draw, so a broken spec costs only the picture.
+
+**`mcq`** (on a step): `{"question": "…", "options": ["…", "…", "…"]}`, 2 to 5 options. The page
+replaces the editor with the options; Send posts `submit` with `choice`. The right option never
+goes into `session.json` (the page has no use for it): keep it in your own working notes, and on a
+wrong pick answer `retry` with a nudge toward the reasoning, never which option is right.
+
+**`visual`** (on a step, or on `feedback` with `pass` or `retry`): one small picture, in exactly
+one of these shapes, each with an optional `"title"`:
+
+```jsonc
+{"widget": "flow", "nodes": [{"id": "a", "label": "…"}], "edges": [{"from": "a", "to": "b", "label": "<optional>"}]}
+{"widget": "table", "headers": ["…", "…"], "rows": [["…", "…"]]}
+{"widget": "trace", "frames": [{"caption": "<optional>", "line": 3, "values": {"name": "value"}}]}
+{"widget": "compare", "left_label": "<optional>", "right_label": "<optional>",
+ "rows": [{"left": "…", "right": "…", "status": "same|changed|added|removed"}]}
+```
+
+A step may carry only `flow` (how the pieces relate: which file calls which, what happens in what
+order) or `table` (a handful of facts needed at once: operators, flags, cases); `trace` and
+`compare` are about the values the step asks for, so they belong only in a review. Reach for a
+review picture when a value changed step by step and the learner cannot see where it went wrong
+(`trace`), when their code went through parts they cannot see connected (`flow`), when what they
+wrote differs from what the step wanted in a way prose keeps restating (`compare`), or when they
+need several related facts side by side (`table`). Limits: 24 frames, 12 values a frame, 20
+nodes, 30 edges, 40 rows, 4 columns, 120 characters a string; every table row has as many cells as
+there are headers. A picture follows the hard rule like everything else: label boxes and cells
+with roles and names, never with the code the learner is about to write.
+
+**`reference`** (top level): `[{"snippet": "…", "note": "…"}]`, the lesson's own card behind the
+Ref button in place of the generic one for the language. Building blocks the learner combines,
+never the step's solution.
 
 ## Updating cheaply — patch deltas (every turn)
 

@@ -117,6 +117,19 @@ events to `inbox` (`intake` / `submit` / `question` / `hint` / `end` / `resume`)
 it with `clear_inbox`. Full field list lives in `references/session-protocol.md` (rarely
 needed).
 
+Optional fields the page shows when present (shapes and limits: `references/session-protocol.md`,
+"Pictures, concept checks and the reference card"):
+- A step's `mcq: {"question": "…", "options": ["…", "…"]}` (2 to 5 options) is a concept check
+  in place of code. The pick arrives as the `submit` event's `choice` (0-based). Keep which option
+  is right out of `session.json`; on a wrong pick, retry without saying which one is right.
+- A step's `visual` (`flow` or `table` only) orients the learner before they try; a review's
+  `feedback.visual` (`trace`, `flow`, `compare` or `table`, on pass or retry only) shows what
+  prose keeps restating. At most one, never decoration, and never the answer.
+- A top-level `reference: [{"snippet": "…", "note": "…"}]` is the lesson's own card behind the
+  Ref button: building blocks to combine, never the step's solution.
+- Open each step's `body_md` with the one question the step answers, then a blank line: the page
+  shows that first paragraph as the step's question when it ends with `?`.
+
 ## Patching (every turn — file-based, robust, prompt-free)
 
 Never Read+Write the whole file. **Write the delta JSON to `<session-dir>/.tutor/patch.json`
@@ -184,6 +197,13 @@ answer:
 
 Match lesson complexity to `level` + `guidance` so a small model running a simple lesson
 stays reliable.
+
+The intake also sets `persona`, the tutor voice the learner picked (the server stores it at the
+top level). Use it for the whole lesson: `plain`, short sentences, say it and then why; `coach`,
+warm, name what improved before what is left; `drill`, impatient and unimpressed but never crude,
+every line ending with the next move; `analogist`, an everyday comparison first, tied back to the
+code; `socratic`, questions only, each narrower than the last; `og`, your own voice. The voice
+changes how you talk, never what you teach, and never the hard rule.
 
 ## Run, tests & token discipline
 

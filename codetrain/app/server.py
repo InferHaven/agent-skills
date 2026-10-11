@@ -45,6 +45,20 @@ import answer_guard  # noqa: E402  (a sibling file in this folder)
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Lock()
 
+# A worker takes its content security policy from the response that delivered its script, so
+# the two workers get the study page's: scripts and fetches from here and from jsDelivr, where
+# Pyodide and the packages it bundles come from, and nowhere else. Without it, the Python worker's
+# fallback for a package Pyodide does not bundle (micropip) would fetch from PyPI on this page while
+# the study page blocks it, and the skill's README promises Pyodide from jsDelivr as the only
+# download. The page itself carries no policy.
+WORKER_SCRIPTS = ("pyodide-worker.js", "js-worker.js")
+WORKER_POLICY = ("default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                 "connect-src 'self' https://cdn.jsdelivr.net")
+
+# What ONE cited file may weigh when the learner opens it. Matches repo_fetch.MAX_VIEW_BYTES
+# on the hosted side so a lesson reads the same in both places.
+REPO_VIEW_BYTES = 120_000
+
 _DONE_GRACE = 90          # seconds to keep serving `done` (recap + confetti), then self-exit
 _done_timer = None
 
@@ -262,13 +276,15 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):  # keep the terminal quiet
         pass
 
-    def _send(self, code, body, ctype="application/json; charset=utf-8"):
+    def _send(self, code, body, ctype="application/json; charset=utf-8", headers=None):
         if isinstance(body, str):
             body = body.encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -282,7 +298,9 @@ class Handler(BaseHTTPRequestHandler):
         with open(path, "rb") as f:
             data = f.read()
         ext = os.path.splitext(path)[1]
-        self._send(200, data, CONTENT_TYPES.get(ext, "application/octet-stream"))
+        extra = ({"Content-Security-Policy": WORKER_POLICY}
+                 if os.path.basename(path) in WORKER_SCRIPTS else None)
+        self._send(200, data, CONTENT_TYPES.get(ext, "application/octet-stream"), extra)
 
     def do_GET(self):
         p = self.path.split("?")[0]
@@ -301,11 +319,65 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, json.dumps(answer_guard.guard_state(data)))
         if p == "/api/runtime":
             return self._send(200, json.dumps({"bash": bool(RUNTIME and RUN_IMAGE), "runtime": RUNTIME}))
+        if p == "/api/patch-pending":
+            # The FULL pending patch diff (the state payload carries a capped one) — read from
+            # the local stash so the learner can inspect every line before Apply writes it.
+            pend = os.path.join(os.path.dirname(self.session_path), "patch_pending.json")
+            try:
+                with open(pend, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                return self._send(404, json.dumps({"error": "no pending patch"}))
+            return self._send(200, json.dumps({"target": data.get("target"), "diff": data.get("diff", "")}))
         if p == "/api/profile":
             return self._send(200, json.dumps(read_profile()))
+        if p == "/api/repo-file":
+            return self._handle_repo_file()
         if p.startswith("/") and "/" not in p[1:]:  # flat static files only
             return self._serve_static(p[1:])
         self._send(404, "not found", "text/plain")
+
+    def _handle_repo_file(self):
+        """One file from the learner's own checkout, for reading beside the lesson that cites it.
+
+        THE SESSION'S CITATION LIST IS THE ENTIRE INPUT SURFACE. `repo_cited` is written by the
+        agent from the repo reader in code_trainer.py, which already refuses secrets, gitignored
+        files and binaries -- so this server needs no copy of that denylist, and a path nobody
+        cited can never be read. Same shape as the hosted side, where the allowlist is what the
+        lesson named and checked.
+        """
+        from urllib.parse import parse_qs, urlparse
+
+        rel = (parse_qs(urlparse(self.path).query).get("path") or [""])[0]
+        with LOCK:
+            data = load_session(self.session_path)
+        root = data.get("repo_root")
+        if not root or rel not in set(data.get("repo_cited") or []):
+            return self._send(404, json.dumps({"error": "no such file in this lesson"}))
+        try:
+            target = safe_join(root, rel)
+        except ValueError:
+            return self._send(404, json.dumps({"error": "no such file in this lesson"}))
+        try:
+            raw = open(target, "rb").read(REPO_VIEW_BYTES + 1)
+        except OSError:
+            return self._send(404, json.dumps({"error": "that file could not be read"}))
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return self._send(415, json.dumps({"error": "that file isn't text"}))
+        if "\x00" in text:
+            return self._send(415, json.dumps({"error": "that file isn't text"}))
+        try:
+            size = os.path.getsize(target)
+        except OSError:
+            size = len(raw)
+        return self._send(200, json.dumps({
+            "path": rel,
+            "content": text[:REPO_VIEW_BYTES],
+            "bytes": size,
+            "truncated": len(raw) > REPO_VIEW_BYTES,
+        }))
 
     def _handle_run(self):
         length = int(self.headers.get("Content-Length", 0) or 0)
@@ -337,6 +409,9 @@ class Handler(BaseHTTPRequestHandler):
                 s["level"] = ev.get("level")
                 s["goal"] = ev.get("goal")
                 s["guidance"] = ev.get("guidance") or "balanced"
+                # Tutor voice, read by tutor.persona_block on every turn. Pinned at intake so a
+                # lesson keeps the voice it was authored in.
+                s["persona"] = ev.get("persona") or "plain"
                 if ev.get("model"):
                     s["model"] = ev.get("model")  # per-session model (Sonnet/Haiku) for the loop
                 s["tutor_status"] = "thinking"

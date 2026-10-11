@@ -104,6 +104,7 @@ body {
 }
 .badge.repo    { color: var(--accent); border-color: var(--accent); }
 .badge.sandbox { color: var(--good); border-color: var(--good); }
+.badge.network { color: var(--accent-2); border-color: var(--accent-2); }
 
 .status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-soft); }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); box-shadow: 0 0 0 0 transparent; }
@@ -158,6 +159,12 @@ body {
 .work   { animation-delay: .10s; }
 .rail   { animation-delay: .18s; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* Entrance animations are dropped once finished (.rise-done added on animationend): Gecko keeps
+   any ancestor with a transform animation — even one settled at transform:none — as the
+   containing block for position:fixed descendants, which trapped the editor pop-out inside
+   .work behind its own backdrop in Firefox. The `to` state equals the natural style, so
+   removing the animation is visually a no-op. */
+.rise-done { animation: none !important; }
 
 .pad { padding: clamp(18px, 2.2vw, 28px); }
 
@@ -169,6 +176,72 @@ body {
   font-family: var(--display); font-weight: 600; font-size: clamp(1.4rem, 2.4vw, 1.9rem);
   letter-spacing: -0.015em; line-height: 1.12; margin: 0 0 14px;
 }
+
+/* The question the step opens with, lifted out of the body by prose.js. Styled as a question and
+   not as the first line of the explanation: a weak one then reads as the tutor framing the
+   problem rather than as a lesson that starts badly, and a good one keeps the force of being
+   asked. Its twin in the hosted app is web/app/study/index.html; only the JS is shared, because
+   the two apps name their design tokens differently. */
+.step-q {
+  margin: 0 0 15px; padding: 9px 0 9px 14px; border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: linear-gradient(90deg, rgba(57,170,170,.09), transparent 72%);
+}
+.step-q .eyebrow { margin: 0 0 3px; opacity: .8; font-size: 0.66rem; }
+.step-q-b { font-family: var(--display); font-size: 1.06rem; line-height: 1.5; color: var(--ink); }
+.step-q-b code.ic { font-size: 0.82em; }
+
+/* A repository path the lesson cited, turned into a button by prose.js. Only paths the local
+   server will serve become one, so an invented path stays plain text beside a real one. */
+/* `display:inline`, NEVER inline-flex: a flex container mid-sentence copies to the clipboard as
+   its own block, and every cited path came through a paste as a line break with the path missing.
+   The glyph is an ::before so it is decoration the clipboard does not have to carry. */
+.fileref {
+  font: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+  display: inline;
+}
+.fileref code {
+  font-family: var(--mono); font-size: 0.86em; background: var(--bg); color: var(--accent-2);
+  padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line);
+  border-bottom-color: var(--accent); transition: background .14s ease;
+}
+.fileref code::before { content: "\25A7"; margin-right: 4px; opacity: .6; }
+.fileref:hover code, .fileref:focus-visible code { background: var(--panel-2); }
+
+/* The file itself, inside the overlay the quick reference already uses. min-width:0 on the pre
+   and a sticky gutter: without the first a long line pushes the overlay sideways, and without the
+   second the line numbers scroll away from their lines. */
+.rf { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.rf-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0;
+  font-size: 0.78rem; color: var(--ink-soft);
+}
+.rf-where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-size { opacity: .72; }
+.rf-out { margin-left: auto; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.rf-out:hover { text-decoration: underline; }
+.rf-box {
+  display: flex; align-items: flex-start; min-width: 0; max-height: 62vh; overflow: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.rf-gut {
+  position: sticky; left: 0; z-index: 1; flex: 0 0 auto; padding: 12px 10px; text-align: right;
+  white-space: pre; user-select: none; font-family: var(--mono); font-size: 0.78rem;
+  line-height: 1.55; color: var(--ink-faint); border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+.rf-pre {
+  flex: 1 1 auto; min-width: 0; margin: 0; padding: 12px 14px; background: none; border: 0;
+  white-space: pre; font-size: 0.78rem; line-height: 1.55; color: var(--ink);
+}
+.rf-pre code { font-family: var(--mono); }
+.rf-pre .token.comment, .rf-pre .token.prolog, .rf-pre .token.doctype, .rf-pre .token.cdata { color: var(--ink-faint); font-style: italic; }
+.rf-pre .token.keyword, .rf-pre .token.important { color: var(--accent); }
+.rf-pre .token.string, .rf-pre .token.char, .rf-pre .token.attr-value, .rf-pre .token.triple-quoted-string { color: var(--good); }
+.rf-pre .token.number, .rf-pre .token.boolean, .rf-pre .token.constant, .rf-pre .token.symbol { color: var(--accent-2); }
+.rf-pre .token.function, .rf-pre .token.class-name, .rf-pre .token.builtin, .rf-pre .token.attr-name { color: var(--accent-2); }
+.rf-pre .token.operator, .rf-pre .token.punctuation, .rf-pre .token.entity { color: var(--ink-soft); }
+.rf-pre .token.property, .rf-pre .token.tag, .rf-pre .token.selector { color: var(--accent-2); }
 
 /* rendered tutor markdown */
 .md { color: var(--ink-soft); font-size: 0.97rem; }
@@ -184,11 +257,35 @@ body {
   background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent);
   border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0 0 1em;
 }
+.md ol { margin: 0 0 1em; padding-left: 1.4em; }
+.md li::marker { color: var(--accent); }
+.md blockquote { margin: 0 0 1em; padding: 2px 0 2px 12px; border-left: 2px solid var(--line-2); color: var(--ink-faint); }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 1.2em 0; }
+.md > :last-child { margin-bottom: 0; }
+/* A table the tutor wrote (prose.js::toHtml). It scrolls inside its own box rather than pushing
+   the column sideways, and its header is set like the other small labels in this UI. */
+.md-table { margin: 0 0 1em; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+.md-table table { width: 100%; border-collapse: collapse; font-size: 0.9rem; line-height: 1.45; }
+.md-table th {
+  text-align: left; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); background: rgba(57, 170, 170, 0.08); padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.md-table td { padding: 8px 12px; vertical-align: top; color: var(--ink-soft); }
+.md-table tbody tr + tr td { border-top: 1px solid var(--line); }
+.md-table tbody tr:nth-child(even) td { background: var(--bg-2); }
+.md-table td:first-child { color: var(--ink); font-weight: 600; }
+.md-table code.ic { white-space: nowrap; }
+.md-table .al-c { text-align: center; }
+.md-table .al-r { text-align: right; }
+/* Three columns or more scroll rather than squeeze to one word per line. */
+.md-table tr > :first-child:nth-last-child(n+3),
+.md-table tr > :first-child:nth-last-child(n+3) ~ * { min-width: 9em; }
 
-/* What the answer guard held back, behind a click (same rules as the hosted tutor's page).
-   Quieter than a code block the tutor meant you to read: dashed edge, never a call to action. */
+/* What the answer guard held back, behind a click. The <pre> sits OUTSIDE .md, so it carries its
+   own rules rather than inheriting the one above. Deliberately quieter than a code block the
+   tutor meant you to read: dashed edge, no accent bar, and never styled as a call to action. */
 details.held { margin: 0 0 1em; font-size: 0.9rem; }
-details.held summary { cursor: pointer; color: var(--ink-soft); display: inline-block; }
+details.held summary { cursor: pointer; color: var(--muted); display: inline-block; }
 details.held summary:hover { color: var(--ink); }
 details.held pre.code {
   font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; color: var(--ink);
@@ -324,6 +421,16 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 }
 .ed-expand:hover { color: var(--ink); border-color: var(--accent); }
 
+/* concept-check (mcq) step: options replace the editor */
+.mcq { padding: 4px 2px 10px; }
+.mcq .mcq-q { font-weight: 600; margin: 6px 0 10px; }
+.mcq .mcq-opt {
+  display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; padding: 9px 12px;
+  border: 1px solid var(--line-2); border-radius: 9px; cursor: pointer;
+}
+.mcq .mcq-opt:hover { border-color: var(--accent); }
+.mcq .mcq-opt:has(input:checked) { border-color: var(--accent); background: var(--bg-2); }
+
 /* @-mention autocomplete */
 .mention-pop {
   position: absolute; z-index: 9999; max-height: 240px; overflow: auto;
@@ -455,6 +562,12 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .patch-sum { color: var(--ink-soft); font-size: 0.9rem; margin: 6px 0 0; }
 .patch-panel .diff { margin: 10px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 0.78rem; line-height: 1.5; white-space: pre; }
 .diff .dl-add { color: var(--good); } .diff .dl-del { color: var(--brand-2); } .diff .dl-hunk { color: var(--accent-2); }
+.patch-stats { margin-left: auto; font-family: var(--mono); font-size: 0.78rem; }
+.patch-stats .dl-add { color: var(--good); } .patch-stats .dl-del { color: var(--brand-2); }
+/* the overlay's full-diff view: tall and scrollable, never clamped like the inline panel */
+.diff-full { max-height: 68vh; overflow: auto; padding: 10px 12px; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono);
+  font-size: 0.78rem; line-height: 1.5; white-space: pre; }
 .patch-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .patch-note { color: var(--ink-faint); font-size: 0.78rem; }
 .patch-note code { font-family: var(--mono); }
@@ -665,3 +778,76 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 }
 .working:not([hidden]) { display: flex; }   /* `hidden` wins by default; show only when unset */
 .working-logo { width: 28px; height: 28px; display: block; }
+
+/* ---- lesson visuals (trace / flow / compare) -------------------------------
+   Built as DOM by visuals.js, which is a byte copy of the hosted study screen's
+   renderer. Token names differ between the two apps, so the CSS is written per
+   app against local variables rather than copied across. */
+.vis { border: 1px solid var(--line); border-radius: 11px; padding: 13px; margin: 14px 0; background: var(--panel-2); }
+.vis-h { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 10px; }
+.vis-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.vis-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 7px; width: 26px; height: 26px; font-size: 15px; line-height: 1; cursor: pointer; }
+.vis-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.vis-btn:disabled { opacity: .35; cursor: default; }
+.vis-count { font-size: 12px; color: var(--ink-soft); }
+.vis-cap { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 9px; }
+.vis-grid { display: flex; flex-direction: column; gap: 4px; }
+.vis-row { display: flex; gap: 10px; padding: 5px 8px; border-radius: 7px; border: 1px solid transparent; font-size: 13px; }
+.vis-row.changed { border-color: var(--accent); background: rgba(57, 170, 170, .09); }
+.vis-name { color: var(--ink-soft); min-width: 88px; flex: 0 0 auto; }
+.vis-val { color: var(--ink); word-break: break-all; }
+.vis-scroll { overflow-x: auto; }
+.vis-svg { width: 100%; min-width: 280px; height: auto; display: block; }
+.vis-node { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
+/* The one box the step is about. Accent fill at low alpha rather than a heavier border, so the
+   emphasis reads at a glance without the diagram gaining a second weight of line. */
+.vis-node.focus { fill: rgba(57, 170, 170, .12); stroke: var(--accent); }
+.vis-node-t { fill: var(--ink); font-size: 12px; font-family: var(--mono); }
+.vis-node-t.focus { fill: var(--accent); }
+.vis-edge { fill: none; stroke: var(--ink-faint); stroke-width: 1; }
+.vis-arrowhead { fill: var(--ink-faint); }
+/* An edge label is prose ("next() triggers"), not an identifier, so it is set in the body face.
+   Node labels stay mono because they are usually code. The plate is what lets it read OVER the
+   curve it belongs to instead of through it. */
+.vis-edge-t { fill: var(--ink-faint); font-size: 10.5px; font-family: var(--body); }
+.vis-edge-plate { fill: var(--panel-2); stroke: none; }
+.vis-cmp { display: flex; flex-direction: column; gap: 2px; }
+.vis-cmp-row { display: grid; grid-template-columns: 16px 1fr 1fr; gap: 9px; padding: 4px 7px; border-radius: 6px; font-size: 12.5px; }
+.vis-cmp-row.head { color: var(--ink-soft); text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; }
+.vis-cmp-row.changed { background: rgba(57, 170, 170, .1); }
+.vis-cmp-row.added { background: rgba(92, 184, 138, .14); }
+.vis-cmp-row.removed { background: rgba(192, 57, 43, .13); }
+/* table widget — deliberately NOT shared with the study app's CSS: same markup, different
+   design tokens (--ink-soft here vs --muted there). Only visuals.js is a byte-identical copy. */
+.vis-table { width: 100%; border-collapse: collapse; font-size: 12.5px; display: block; overflow-x: auto; }
+.vis-table th { text-align: left; padding: 5px 9px; color: var(--ink-soft); text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.vis-table td { padding: 5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.vis-table tr:last-child td { border-bottom: 0; }
+.vis-cmp-mark { color: var(--ink-soft); }
+.vis-cmp-cell { word-break: break-all; }
+
+/* --- in-lesson glossary -------------------------------------------------------------------
+   A term the tutor used, turned into a button by glossary.js. The renderer is byte-identical to
+   the hosted one; the CSS deliberately is NOT shared, because the two apps name their tokens
+   differently (--accent here, --mint there) and a shared stylesheet would have to pick one. */
+.ct-term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+  cursor: help; border-bottom: 1px dotted var(--accent); border-radius: 0; }
+.ct-term:hover, .ct-term:focus-visible { color: var(--accent); border-bottom-style: solid; }
+.ct-gloss { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.ct-gloss-box { position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 20px));
+  min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 13px 15px 14px; box-shadow: 0 18px 44px -18px rgba(0,0,0,.6); }
+.ct-gloss-h { display: flex; align-items: baseline; gap: 10px; }
+.ct-gloss-t { flex: 1; min-width: 0; font-family: var(--mono); font-size: .84rem;
+  color: var(--accent); overflow-wrap: anywhere; }
+.ct-gloss-x { background: none; border: 0; color: var(--ink-soft); cursor: pointer;
+  font-size: .8rem; padding: 0 2px; }
+.ct-gloss-x:hover { color: var(--ink); }
+.ct-gloss-s { margin-top: 7px; font-size: .86rem; line-height: 1.5; color: var(--ink); }
+.ct-gloss-b { margin-top: 7px; font-size: .8rem; line-height: 1.55; color: var(--ink-soft); }
+.ct-gloss-e { margin-top: 9px; padding: 8px 10px; background: var(--panel-2); border-radius: 8px;
+  font-family: var(--mono); font-size: .76rem; color: var(--ink); white-space: pre-wrap;
+  overflow-x: auto; }
+.ct-gloss-a { margin-top: 10px; font-size: .76rem; color: var(--ink-soft); }
+.ct-gloss-rel { border-bottom-color: var(--ink-soft); cursor: pointer; }
+.ct-gloss-d { display: inline-block; margin-top: 10px; font-size: .76rem; color: var(--accent); }

@@ -4,6 +4,20 @@
 
 import { createEditor } from "./editor.js";
 import { runCode, runtimeAvailable, runtimeLang, probeBash } from "./runner.js";
+import { VISUALS } from "./visuals.js";
+
+/* Lesson visuals reach this UI the same way they reach the hosted study screen: the managed API
+   returns them, so the local server is a courier rather than an author. visuals.js is a byte copy
+   of web/app/study/visuals.js and test_visuals.py fails if the two drift.
+
+   The renderers build DOM and set textContent, so a spec is never interpreted as markup here
+   either. That matters more locally, not less: this page is served off the learner's own
+   loopback, where a same-origin injection sits next to their workspace. */
+function mountVisual(host, spec) {
+  if (!host || !spec) return;
+  const fn = VISUALS[spec.widget];
+  if (fn) { try { fn(host, spec); } catch (e) { host.innerHTML = ""; } }
+}
 
 const $ = (id) => document.getElementById(id);
 const POLL_MS = 1200;
@@ -67,8 +81,16 @@ function applyEditorTheme(name) {
 /* ---------- helpers ---------- */
 function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
 function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+/* The renderer is shared with the hosted study screen in prose.js (tables, lists, headings), so
+   both show a reply the same way. The body below is the old one, kept for a prose.js that failed
+   to load. */
 function md(src) {
   if (!src) return "";
+  const P = window.CTProse;
+  if (P && P.toHtml) {
+    try { return P.toHtml(src); }
+    catch (e) { /* fall through to the local renderer */ }
+  }
   let t = esc(src);
   t = t.replace(/```(\w*)\n([\s\S]*?)```/g, (_, _l, c) => `<pre class="code"><code>${c.replace(/\n$/, "")}</code></pre>`);
   t = t.replace(/`([^`]+)`/g, '<code class="ic">$1</code>');
@@ -122,6 +144,44 @@ function closeOverlay() {
   const o = $("overlay"); if (o) o.remove();
   document.removeEventListener("keydown", _escClose);
 }
+/* The question the tutor opens a step with, pulled out of the body so it can be styled as a
+   question rather than as the first line of the explanation. prose.js is byte-identical with the
+   hosted copy, so both front ends split the same step the same way. */
+function openerOf(bodyMd) {
+  const P = window.CTProse;
+  if (!P) return { question: "", rest: bodyMd || "" };
+  try { return P.splitOpener(bodyMd || ""); }
+  catch (e) { return { question: "", rest: bodyMd || "" }; }
+}
+
+function questionHtml(q) {
+  if (!q) return "";
+  return `<div class="step-q"><p class="eyebrow">the question</p>
+    <div class="step-q-b">${md(q)}</div></div>`;
+}
+
+/* Open a file the lesson cited, read from the learner's own checkout by the local server. The
+   allowlist is `repo_cited`, which the agent built from the repo reader that already refuses
+   secrets, gitignored files and binaries -- so nothing here needs a second copy of that denylist,
+   and a path the model invented is never offered. */
+function wireRepoFiles(el, s) {
+  const P = window.CTProse;
+  const cited = (s && s.repo_cited) || [];
+  if (!P || !el) return;
+  if (!cited.length) { P.reset(); return; }
+  try {
+    P.configure({
+      paths: cited,
+      source: (s && s.repo_root) || "your checkout",
+      openOverlay,
+      load: (path) => fetch("/api/repo-file?path=" + encodeURIComponent(path))
+        .then((r) => r.json())
+        .then((d) => { if (d && d.error) throw new Error(d.error); return d; }),
+    });
+    P.link(el);
+  } catch (e) { /* the prose is correct without the links */ }
+}
+
 function openOverlay(title, html) {
   closeOverlay();
   const o = document.createElement("div");
@@ -144,10 +204,12 @@ const REFERENCE = {
 function openReference(lang) {
   const aliases = { sh: "bash", shell: "bash", node: "javascript", js: "javascript", py: "python", "php-web": "php" };
   const l = aliases[(lang || "").toLowerCase()] || (lang || "").toLowerCase();
-  const rows = REFERENCE[l] || REFERENCE.python;
+  // Prefer the lesson-specific card authored with the course; static per-language fallback.
+  const dyn = (currentState && Array.isArray(currentState.reference)) ? currentState.reference : [];
+  const rows = dyn.length ? dyn.map((r) => [r.snippet, r.note]) : (REFERENCE[l] || REFERENCE.python);
   const html = `<table class="reftab">${rows.map(([a, b]) => `<tr><td><code>${esc(a)}</code></td><td class="muted">${esc(b)}</td></tr>`).join("")}</table>
     <p class="muted" style="margin-top:10px;font-size:0.78rem">A quick reference, not the answer — combine these to solve the step.</p>`;
-  openOverlay(`${l} reference`, html);
+  openOverlay(dyn.length ? "lesson reference" : `${l} reference`, html);
 }
 
 /* ---------- submit / lock ---------- */
@@ -158,9 +220,19 @@ function canVerify() {
 }
 // Send is the "advance me" action: gated to all-green when verifiable client-side.
 // Review my attempt is always available (works on failing code).
+function mcqSelection() {
+  const sel = document.querySelector('#mcq-wrap input[name="mcq"]:checked');
+  return sel ? +sel.value : null;
+}
 function updateSendGate() {
   if (awaiting) return;                       // locked mid-review; leave as-is
   const send = $("send");
+  if (activeStep(currentState).mcq) {         // concept check: gate on a picked option
+    const picked = mcqSelection() !== null;
+    send.disabled = !picked;
+    send.title = picked ? "Send your answer" : "Pick an option first";
+    return;
+  }
   if (!canVerify()) {                         // bash / no cases / offline -> tutor verifies
     send.disabled = false; send.title = "Send your code to the tutor"; return;
   }
@@ -183,6 +255,15 @@ function unlockSubmit() {
 }
 function submit(reviewRequest) {
   if (awaiting) return;
+  if (activeStep(currentState).mcq) {
+    const choice = mcqSelection();
+    if (choice === null) return;
+    lockSubmit();
+    post({ type: "submit", choice, note: $("note").value, mentions: extractMentions($("note").value) });
+    $("note").value = "";
+    toast("Answer sent — <b>reviewing…</b>");
+    return;
+  }
   lockSubmit();
   if (multiFiles.length > 1 && editor && activeFile) multiBuffers[activeFile] = editor.getValue();
   const primary = multiFiles.length > 1 ? (multiBuffers[multiFiles[0].file] || "") : editor.getValue();
@@ -207,6 +288,19 @@ $("reset").addEventListener("click", () => {
 $("ref").addEventListener("click", () => openReference(currentLang()));
 
 /* ---------- editor pop-out (full-page, distraction-free) ---------- */
+// Firefox: an ancestor that has a transform animation (even finished, at transform:none) stays
+// the containing block for position:fixed descendants, so the pop-out would stay pinned inside
+// .work behind the backdrop. Settle animations as they end, and force-settle the editor's
+// ancestor chain right before popping out in case an animationend never fired.
+document.addEventListener("animationend", (e) => {
+  if (e.animationName === "rise" && e.target.classList) e.target.classList.add("rise-done");
+});
+function settleAncestors(el) {
+  for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement) {
+    const names = (getComputedStyle(n).animationName || "").split(",");
+    if (names.some((a) => a.trim() === "rise")) n.classList.add("rise-done");
+  }
+}
 let edBackdrop = null;
 function ensureBackdrop() {
   if (edBackdrop) return edBackdrop;
@@ -232,6 +326,7 @@ function ensureCloseBtn() {
 }
 function setEditorFullscreen(on) {
   const ed = $("editor-mount"); if (!ed) return;
+  if (on) settleAncestors(ed);
   ensureBackdrop().hidden = !on;
   ensureCloseBtn();
   ed.classList.toggle("fullscreen", on);
@@ -426,6 +521,19 @@ $("run").addEventListener("click", onRun);
 async function onRun() {
   const tests = activeTests(currentState);
   const lang = currentLang();
+  if (lang === "dockerfile") {
+    // Never executed — statically lint; the tutor narrates the simulated build on Submit.
+    const findings = (typeof dockLint === "function") ? dockLint(editor.getValue()) : [];
+    lastRun = { lang: "dockerfile", lint: findings, clean: !findings.length };
+    renderOutput(
+      findings.length
+        ? findings.map((f) => `${f.line ? "L" + f.line + ": " : ""}[${f.rule}] ${f.msg}`).join("\n")
+        : "✓ Lint clean — Send it and the tutor walks the build layer by layer.",
+      "", new Date().toLocaleTimeString());
+    toast(findings.length ? `Lint: ${findings.length} finding(s) — see output.` : "Lint clean ✓", 2600);
+    updateSendGate();
+    return;
+  }
   if (!runtimeAvailable(lang)) return;
   const ranCode = editor.getValue();
   const btn = $("run"); btn.disabled = true; btn.textContent = "Running…";
@@ -556,6 +664,27 @@ function diffHtml(diff) {
     return `<span class="${cls}">${esc(l)}</span>`;
   }).join("\n");
 }
+function diffStats(diff) {
+  let add = 0, del = 0;
+  String(diff || "").split("\n").forEach((l) => {
+    if (l.startsWith("+") && !l.startsWith("+++")) add++;
+    else if (l.startsWith("-") && !l.startsWith("---")) del++;
+  });
+  return { add, del };
+}
+async function openFullDiff(p) {
+  // The panel diff is capped (8 KB); the engine server stashes the complete one locally —
+  // show EXACTLY what would be written, every added and removed line.
+  let diff = p.diff;
+  try {
+    const r = await fetch("/api/patch-pending");
+    if (r.ok) { const d = await r.json(); if (d && d.diff) diff = d.diff; }
+  } catch (e) { /* fall back to the capped diff */ }
+  const st = diffStats(diff);
+  openOverlay(`Full diff — ${p.target}`,
+    `<div class="patch-sum" style="margin-bottom:8px"><span class="dl-add">+${st.add}</span> · <span class="dl-del">−${st.del}</span> lines</div>
+     <pre class="diff diff-full">${diffHtml(diff)}</pre>`);
+}
 function updatePatch(p) {
   const sig = JSON.stringify(p || null);
   if (sig === cache.patch) return;
@@ -563,12 +692,15 @@ function updatePatch(p) {
   const wrap = $("patch-wrap");
   if (!wrap) return;
   if (!p || !p.target) { wrap.innerHTML = ""; return; }
+  const st = diffStats(p.diff);
   wrap.innerHTML = `<div class="patch-panel">
-    <div class="patch-head"><span>Apply to your repo?</span><code>${esc(p.target)}</code></div>
+    <div class="patch-head"><span>Apply to your repo?</span><code>${esc(p.target)}</code>
+      <span class="patch-stats"><span class="dl-add">+${st.add}</span> · <span class="dl-del">−${st.del}</span></span></div>
     ${p.summary ? `<div class="patch-sum">${esc(p.summary)}</div>` : ""}
     <pre class="diff">${diffHtml(p.diff)}</pre>
     <div class="patch-actions">
       <button class="btn primary" id="patch-apply">Apply to ${esc(p.target)}</button>
+      <button class="btn ghost" id="patch-expand" title="Inspect every added/removed line before writing">Inspect full diff ⤢</button>
       <button class="btn ghost" id="patch-cancel">Not now</button>
       <span class="patch-note">A backup (<code>.codetrain.bak</code>) is saved before writing.</span>
     </div></div>`;
@@ -576,6 +708,7 @@ function updatePatch(p) {
     $("patch-apply").disabled = true; $("patch-cancel").disabled = true;
     post({ type: "patch_apply" }); toast("Writing to your repo…");
   });
+  $("patch-expand").addEventListener("click", () => openFullDiff(p));
   $("patch-cancel").addEventListener("click", () => {
     $("patch-cancel").disabled = true; post({ type: "patch_cancel" });
   });
@@ -596,22 +729,27 @@ function updateUsage(u) {
   if (u.cost_used_pct != null) bits.push(`<span class="pchip">${esc(u.cost_used_pct)}% used</span>`);
   wrap.innerHTML = `<h2>Plan &amp; usage</h2><div class="pchips">${bits.join("")}</div>`;
 }
-// What the answer guard (app/answer_guard.py) held back, behind a click. Same contract as the
-// hosted tutor's copy: closed by default, and every span is escaped on its way into the <pre>.
+// What the answer guard held back, behind a click. Same contract as the study page's copy in
+// web/app/study/study.js: only a line reproducing the step the learner is still on reaches here,
+// it is closed by default, and every span is escaped on its way into the <pre>.
 function heldHtml(held) {
   if (!Array.isArray(held) || !held.length) return "";
   return `<details class="held"><summary>Show it anyway</summary>`
     + `<pre class="code">${held.map((s) => esc(s)).join("\n")}</pre></details>`;
 }
 function updateFeedback(fb) {
+  // `visual` is part of the signature: a review that differs from the last one only by its
+  // diagram is still a different review, and leaving it out would show the previous picture.
   const sig = fb ? (fb.status || "none") + " " + (fb.md || "") + " " + JSON.stringify(fb.checks || [])
-    + " " + JSON.stringify(fb.held || null) : "none";
+    + " " + JSON.stringify(fb.visual || null) + " " + JSON.stringify(fb.held || null) : "none";
   if (sig === cache.feedback) return;
   cache.feedback = sig;
   const wrap = $("feedback-wrap");
   if (!fb || !fb.status || fb.status === "none") { wrap.innerHTML = ""; return; }
   const label = { pass: "nice — that works", retry: "not yet — let's adjust", comment: "from your tutor" }[fb.status] || "from your tutor";
-  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div>${heldHtml(fb.held)}${checksHtml(fb.checks)}</div>`;
+  wrap.innerHTML = `<div class="feedback ${fb.status}"><span class="tag">${label}</span><div class="md">${md(fb.md)}</div>${heldHtml(fb.held)}${checksHtml(fb.checks)}${fb.visual ? `<div id="fb-visual"></div>` : ""}</div>`;
+  mountVisual($("fb-visual"), fb.visual);
+  gloss(wrap, currentLang());
   // Make it obvious where the tutor replied (esp. nudges): pull it into view + flash once.
   const box = wrap.firstElementChild;
   if (box) {
@@ -631,6 +769,18 @@ function updateTests(t) {
 }
 
 /* ---------- lesson region ---------- */
+/* Mirrors agent/tutor.py PERSONAS plus the "og" opt-out. Ids must match or the tutor falls
+   back to the default and this picker quietly lies about what it selected. Same roster as the
+   hosted study page. */
+const PERSONAS = [
+  { id: "plain", label: "Plain", note: "clear and direct" },
+  { id: "coach", label: "Coach", note: "warm, notices what improved" },
+  { id: "drill", label: "Drill sergeant", note: "harsh and impatient" },
+  { id: "analogist", label: "The Analogist", note: "everyday comparisons" },
+  { id: "socratic", label: "Socratic hardliner", note: "questions only" },
+  { id: "og", label: "OG model", note: "the model's own voice" },
+];
+
 function buildIntake(s) {
   const el = $("lesson"); el.className = "intake";
   el.innerHTML = `
@@ -654,6 +804,8 @@ function buildIntake(s) {
         <button class="chip on" data-v="explore" aria-pressed="true">Explore (read-only)</button>
         <button class="chip" data-v="guided" aria-pressed="false">Guided change</button>
       </div></div>` : ""}
+    <div class="field"><label for="persona">Tutor voice <span class="sub">how it talks to you; it teaches the same either way</span></label>
+      <select id="persona">${PERSONAS.map((p) => `<option value="${esc(p.id)}" ${p.id === (s.persona || "plain") ? "selected" : ""}>${esc(p.label)} — ${esc(p.note)}</option>`).join("")}</select></div>
     <div class="field"><label>${s.repo_mode ? "What do you want to learn or change in this repo?" : "What do you want to walk away understanding?"}</label>
       <textarea id="goal" placeholder="${s.repo_mode ? "e.g. walk me through adding a --verbose flag, or explain how auth works" : "e.g. how this auth middleware actually verifies a token"}"></textarea></div>
     ${(s.models && s.models.length > 1) ? `<div class="field"><label for="model">Model <span class="sub">repo work and deeper reviews do best on Sonnet</span></label>
@@ -675,23 +827,46 @@ function buildIntake(s) {
     if (!goal) return toast("Tell your tutor what you're after.", 2500);
     const modelEl = $("model");
     const model = modelEl ? modelEl.value : undefined;
+    const personaEl = $("persona");
+    const persona = personaEl ? personaEl.value : undefined;
     $("begin").disabled = true;
-    post({ type: "intake", level, goal, guidance, model, mentions: extractMentions(goal), ...(s.repo_mode ? { intent } : {}) });
+    post({ type: "intake", level, goal, guidance, model, persona, mentions: extractMentions(goal), ...(s.repo_mode ? { intent } : {}) });
     toast("Got it — building your first step…");
   });
   showWork(false);
 }
+/* Turn the first mention of each known term in tutor prose into a button that explains it. The
+   glossary is a generated file loaded beside this one and byte-identical to the hosted copy, so
+   the agent's browser UI explains the same words the same way.
+
+   Runs after the container is in the document rather than over the markdown string: a pattern
+   applied to an HTML string can match inside a tag or an attribute, and a walk over text nodes
+   cannot. `md()` is untouched. Guarded and swallowing, because the links are decoration and the
+   prose is already correct without them. */
+function gloss(el, lang) {
+  const G = window.CTGlossary;
+  if (!G || !el) return;
+  try { G.linkTerms(el, lang || currentLang() || ""); }
+  catch (e) { /* the lesson is fine without the definitions */ }
+}
+
 function buildStep(s) {
   const step = activeStep(s); const el = $("lesson"); el.className = "";
   const hints = step.hints || [];
+  const opener = openerOf(step.body_md);
   el.innerHTML = `
     <p class="eyebrow">${esc(step.eyebrow || (s.progress && s.progress.step ? "step " + s.progress.step : "step"))}</p>
     <h1 class="step-head">${esc(step.heading || "Working…")}</h1>
-    <div class="md">${md(step.body_md)}</div>
+    ${questionHtml(opener.question)}
+    <div class="md">${md(opener.rest)}</div>
+    ${step.visual ? `<div id="step-visual"></div>` : ""}
     ${step.task_md ? `<div class="task"><p class="eyebrow">your task</p><div class="md">${md(step.task_md)}</div></div>` : ""}
     <div class="hints" id="hints"><button class="hint-btn" id="hint-btn">Need a nudge?</button></div>`;
   revealedHints = 0;
   wireHints(hints, step.hints_held || []);
+  mountVisual($("step-visual"), step.visual);
+  gloss(el, currentLang());
+  wireRepoFiles(el, s);
 
   showWork(true);
   setText($("file-name"), step.file || "scratch");
@@ -699,8 +874,8 @@ function buildStep(s) {
   setText($("file-lang"), lang);
   if (editor) editor.setLanguage(lang);
 
-  // Run button only when a client runtime exists for this language
-  const canRun = runtimeAvailable(lang);
+  // Run button only when a client runtime exists for this language (dockerfile "runs" as lint)
+  const canRun = runtimeAvailable(lang) || lang === "dockerfile";
   const verify = canRun && !!(activeTests(s).cases && activeTests(s).cases.length);
   $("run").style.display = canRun ? "" : "none";
   $("run-hint").textContent = verify
@@ -727,8 +902,34 @@ function buildStep(s) {
   }
   renderOutput("", "");
   greenCode = null;
+  renderMcqStep(step);
   $("review").disabled = false; $("reset").disabled = false;
   updateSendGate();
+}
+function renderMcqStep(step) {
+  // Concept-check step: options replace the editor; Send posts the chosen index and the
+  // tutor grades it (the correct answer never ships to the client).
+  const mcq = step.mcq;
+  const toggle = (id, hidden) => { const el = $(id); if (el) el.style.display = hidden ? "none" : ""; };
+  ["editor-mount", "run", "reset", "run-hint", "file-tabs"].forEach((id) => toggle(id, !!mcq));
+  const ft = document.querySelector(".file-tab");
+  if (ft) ft.style.display = mcq ? "none" : "";
+  let wrap = $("mcq-wrap");
+  if (!mcq) { if (wrap) wrap.remove(); return; }
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "mcq-wrap"; wrap.className = "mcq";
+    const anchor = $("editor-mount");
+    anchor.parentNode.insertBefore(wrap, anchor);
+  }
+  const key = JSON.stringify(mcq);
+  if (wrap.dataset.key === key) return;      // poll re-render must not clobber the selection
+  wrap.dataset.key = key;
+  wrap.innerHTML = `<p class="eyebrow">concept check</p>
+    <p class="mcq-q">${esc(mcq.question)}</p>
+    ${mcq.options.map((o, i) =>
+      `<label class="mcq-opt"><input type="radio" name="mcq" value="${i}"><span>${esc(o)}</span></label>`).join("")}`;
+  wrap.querySelectorAll("input").forEach((r) => r.addEventListener("change", updateSendGate));
 }
 function buildDone(s) {
   const el = $("lesson"); el.className = "done";

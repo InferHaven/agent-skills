@@ -112,6 +112,12 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="prism.js"></script>
+  <script src="docklint.js"></script>
+  <!-- The in-lesson glossary. Generated from services/glossary_terms.py and byte-identical to
+       web/app/study/glossary.js: the agent renders the same lessons, so it explains the same
+       words. Loaded before app.js so window.CTGlossary exists at the first render. -->
+  <script src="glossary.js"></script>
+  <script src="prose.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
