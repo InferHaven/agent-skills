@@ -6,7 +6,9 @@
    The server never executes code; this all runs in the browser. Languages with
    no worker (bash, etc.) report unavailable so the UI falls back to Claude. */
 
-const RUN_TIMEOUT_MS = 12000;
+// 20s, as on the study page: the Python worker is the same file, and its first numpy import
+// downloads the package inside that run.
+const RUN_TIMEOUT_MS = 20000;
 const IDENT = /^[A-Za-z_$][\w$]*$/;
 
 const WORKER_FILE = { python: "pyodide-worker.js", javascript: "js-worker.js", js: "js-worker.js" };
