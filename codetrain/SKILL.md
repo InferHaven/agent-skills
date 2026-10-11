@@ -129,6 +129,10 @@ Optional fields the page shows when present (shapes and limits: `references/sess
   Ref button: building blocks to combine, never the step's solution.
 - Open each step's `body_md` with the one question the step answers, then a blank line: the page
   shows that first paragraph as the step's question when it ends with `?`.
+- In repo mode, set `repo_root` to the repository's absolute path and list in `repo_cited` the
+  repo-relative paths your prose names: the page turns each one into a button that opens the file
+  beside the lesson, read-only. The server opens only a listed path inside `repo_root`, and never
+  a secret, gitignored or binary file, so cite source, not credentials.
 
 ## Patching (every turn — file-based, robust, prompt-free)
 

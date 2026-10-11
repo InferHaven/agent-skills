@@ -12,12 +12,15 @@ npx skills add InferHaven/agent-skills --skill codetrain
 
 ## What a lesson looks like
 
-1. The agent starts a small local web page and gives you its link.
-2. You choose your level, your goal, and how much guidance you want: minimal, balanced or guided.
-3. The agent writes one small step at a time. Each step has a task, hints, and, for Python and JavaScript, test cases.
-4. You write the code in the page's editor and press Run. Your code is checked against those tests right in your browser.
-5. You press Send. The agent reviews your code, explains, asks a question, and either moves you on or asks you to try again.
-6. At the end you get a recap, and your progress is saved on your machine.
+1. Open the lesson page from the link the agent prints.
+2. Pick the tutor's voice: plain, coach, drill sergeant, the Analogist, Socratic hardliner, or the model's own voice. The voice changes how the tutor talks, never what it teaches or the rule that it does not write your solution.
+3. Choose your level, goal and guidance.
+4. Work through one small step at a time. A step is usually a task with hints and, for Python and JavaScript, test cases. A step can instead be a multiple-choice concept check: you pick an option and press Send, and the tutor reviews your choice. The page is never told which option is right. A step can open with the question it answers, shown above the explanation. A step, or the tutor's review, can show one small picture: a flow diagram, a table, a trace of values changing step by step, or a side-by-side comparison. A picture never contains the answer to the step.
+5. Write the code and press Run.
+6. Press Send and the tutor reviews what you wrote.
+7. Read the recap at the end.
+
+The first mention of a known programming term in the lesson text becomes a button that shows a short definition.
 
 Hints climb from a gentle nudge to the shape of the approach. The last hint still never hands you the line to write.
 
@@ -137,7 +140,7 @@ Cursor, GitHub Copilot and Gemini CLI were not tested. The skills CLI can place 
 
 - The lesson page is served on 127.0.0.1 only. The skill sends nothing to CodeTrain or InferHaven: no account, no telemetry, no analytics.
 - Your agent sends what it reads to its own model provider, as it does for any task. In a lesson, what the agent reads includes your code and the lesson file. From your profile the agent gets only a short summary, printed by `ctl.sh profile` at the start of the lesson: level, languages, lessons, streak, the last lesson date, the latest goal and the concepts due for review. Strengths, notes, other gaps, older goals and past lesson summaries stay in `~/.codetrain` unless you ask the tutor to use them, and the agent never reads or edits the profile files itself. In the three test runs, marker words planted in a test profile never appeared in the agent's transcript.
-- The only other network fetch is Pyodide, downloaded from jsDelivr the first time Python runs. JavaScript runs in a sandboxed browser worker, and bash runs in a throwaway container with no network when docker or podman is available; otherwise you run it in your own terminal and describe what you saw.
+- The only other network requests are Pyodide, downloaded from jsDelivr the first time Python runs, and the packages Pyodide bundles (numpy, pandas and the rest), each downloaded from jsDelivr the first time your code imports it. Nothing is fetched from PyPI: the page's code-running workers may fetch only from the page's own local server and from jsDelivr, and your code is not sent there. JavaScript runs in a sandboxed browser worker, and bash runs in a throwaway container with no network when docker or podman is available; otherwise you run it in your own terminal and describe what you saw.
 - The lesson page's server runs none of your code on your machine except bash steps inside that container. Your agent can still run commands with its own tools, as it can for any task: to check a result it may run the step's check command or your submitted file, under your agent's normal permission rules.
 - File writes from the page stay inside the workspace the lesson was started in: your repository in local code mode, the throwaway folder in sandbox mode.
 
@@ -164,7 +167,7 @@ The skill uses your own agent and model account, has no CodeTrain servers, and i
 
 ### Does it send my code anywhere?
 
-Your agent sends what it reads to its own model provider, as it does for any task, and in a lesson this includes your code and the lesson file. From your local profile it gets only a short summary; the rest stays in `~/.codetrain`. The skill itself sends nothing to CodeTrain or InferHaven: no account, no telemetry, no analytics. The only other network fetch is Pyodide from jsDelivr, the first time Python runs.
+Your agent sends what it reads to its own model provider, as it does for any task, and in a lesson this includes your code and the lesson file. From your local profile it gets only a short summary; the rest stays in `~/.codetrain`. The skill itself sends nothing to CodeTrain or InferHaven: no account, no telemetry, no analytics. The only other network requests are Pyodide and the packages of it your code imports, each fetched from jsDelivr the first time it is needed. Nothing is fetched from PyPI, and your code is not sent to jsDelivr.
 
 ### Is it free? What is the catch?
 
@@ -192,7 +195,7 @@ Yes. Teach-on-diff turns a diff into a lesson: your uncommitted changes, a commi
 
 ### Which languages can I practise?
 
-Python and JavaScript steps run and are checked against test cases right in your browser. Bash runs in the throwaway container when docker or podman is available. Steps in other languages can be written and reviewed, but the page cannot run them; the agent reviews what you wrote.
+Python and JavaScript run in your browser and are checked against test cases there. Python runs through Pyodide, so your code can import numpy, pandas and the other packages Pyodide bundles; each one downloads from jsDelivr the first time your code imports it, and a package Pyodide does not bundle is not installed from PyPI. JavaScript runs in a sandboxed browser worker. Bash runs in a throwaway container with no network, when docker or podman is available. Dockerfile steps are checked by a linter in the page; nothing is built or run. Other languages are written and reviewed but not run.
 
 ### How can I keep my skills while using a coding agent every day?
 
@@ -204,7 +207,7 @@ One wait for your next action lasts about 30 minutes, and the agent re-arms it q
 
 ## How it works
 
-A small Python server, standard library only, serves the lesson page and one JSON state file, `session.json`. The agent changes the lesson by writing small patches that `app/ctl.sh patch` applies. `app/ctl.sh watch` waits for your next action on the page, whether Send, a question or End, and then wakes the agent with your code and your browser test results. At the start of a lesson the agent runs `app/ctl.sh profile`, which prints a short summary of `~/.codetrain`; the agent never reads or edits the profile files itself, and at the end `ctl.sh profile-update` records the lesson. Before the page shows the tutor's feedback or a hint, `app/answer_guard.py` checks each code span, and a span that shares two or more of the step's own names is hidden behind "Show it anyway". The editor uses a bundled copy of Prism for highlighting, with no CDN, and the fonts are self-hosted.
+A small Python server, standard library only, serves the lesson page and one JSON state file, `session.json`. The agent changes the lesson by writing small patches that `app/ctl.sh patch` applies. `app/ctl.sh watch` waits for your next action on the page, whether Send, a question or End, and then wakes the agent with your code and your browser test results. At the start of a lesson the agent runs `app/ctl.sh profile`, which prints a short summary of `~/.codetrain`; the agent never reads or edits the profile files itself, and at the end `ctl.sh profile-update` records the lesson. Before the page shows the tutor's feedback or a hint, `app/answer_guard.py` checks each code span, and a span that shares two or more of the step's own names is hidden behind "Show it anyway". The editor uses a bundled copy of Prism for highlighting, with no CDN, and the fonts are self-hosted. The lesson page is the same page the `codetrain` command-line agent uses, file for file; a test in CodeTrain fails if the two ever differ. The page's server, not the agent's instructions, enforces the workers' fetch rule: the code-running workers may fetch only from the page's own local server and from jsDelivr.
 
 ```text
 codetrain/
@@ -229,6 +232,10 @@ codetrain/
   app/static/runner.js            # client run dispatcher (timeout, pass/fail)
   app/static/pyodide-worker.js    # Python (WASM) execution worker
   app/static/js-worker.js         # JavaScript sandbox worker
+  app/static/glossary.js          # turns the first mention of a known term into a button with a short definition
+  app/static/visuals.js           # the small pictures a step or review can show (flow diagram, table, trace, comparison)
+  app/static/prose.js             # the shared prose renderer for tables, lists and headings
+  app/static/docklint.js          # the Dockerfile linter; nothing is built or run
 ```
 
 ## License and third-party parts

@@ -130,6 +130,8 @@ paths work.
   "summary_md": "",                  // recap shown on the done screen (phase:"done")
   "persona": "plain",                // from intake: the tutor voice (SKILL.md, Guidance)
   "reference": [],                   // optional lesson card behind Ref: [{snippet, note}]
+  "repo_root": null,                 // repo mode: the repository's absolute path
+  "repo_cited": [],                  // repo mode: repo-relative paths the prose names (below)
 
   // PREFERRED: author the whole lesson ONCE as steps:[{…}, …] — the UI renders the
   // active one by progress.step, and each step may carry its own "tests". Advancing
@@ -228,6 +230,13 @@ with roles and names, never with the code the learner is about to write.
 **`reference`** (top level): `[{"snippet": "…", "note": "…"}]`, the lesson's own card behind the
 Ref button in place of the generic one for the language. Building blocks the learner combines,
 never the step's solution.
+
+**`repo_cited`** (top level, repo mode, with `repo_root`): the repo-relative paths the lesson's
+prose names, for example `["src/auth.py", "tests/test_auth.py"]`. Each mention of a listed path in
+the prose becomes a button that opens the file over the lesson, read-only, up to 120 KB. The
+server checks every request itself: the path must be listed and inside `repo_root`, and a secret
+(`.env`, keys, credential files; the same list CodeTrain's repo reader refuses), a file git
+ignores or a binary file never opens, whatever the list says.
 
 ## Updating cheaply — patch deltas (every turn)
 

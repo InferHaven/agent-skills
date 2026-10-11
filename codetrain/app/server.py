@@ -27,6 +27,7 @@ On start it writes `url.txt` and `server.pid` next to session.json so the tutor
 can discover/reuse a running instance and clean it up later.
 """
 import argparse
+import fnmatch
 import json
 import os
 import shutil
@@ -54,6 +55,46 @@ LOCK = threading.Lock()
 WORKER_SCRIPTS = ("pyodide-worker.js", "js-worker.js")
 WORKER_POLICY = ("default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
                  "connect-src 'self' https://cdn.jsdelivr.net")
+
+# Files that look like secrets or credentials, matched case-insensitively on the basename. The
+# CLI's repo reader refuses these before a path can ever be cited, but in the open skill the agent
+# writes `repo_cited` itself, so this server refuses them too: a secret never reaches the page,
+# whoever wrote the list. Mirrors agent/code_trainer.py `_SECRET_GLOBS` and the hosted reader's
+# copy; test_repo_fetch.py holds the three equal.
+_SECRET_GLOBS = (
+    ".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx", "*.pkcs12",
+    "id_rsa*", "id_dsa*", "id_ecdsa*", "id_ed25519*", "*.keystore", "*.jks",
+    ".netrc", "_netrc", ".npmrc", ".pypirc", ".pgpass", ".git-credentials",
+    "*.kdbx", "credentials", "credentials.json", "service-account*.json",
+    "*.secret", ".secrets", "secrets.json", "secrets.yml", "secrets.yaml", "client_secret*",
+    ".htpasswd", "*.ovpn", "wg*.conf",
+)
+# Env templates are meant to be copied and committed: placeholders, not credentials.
+_ENV_TEMPLATE_OK = (
+    ".env.example", ".env.sample", ".env.template", ".env.dist", ".env.defaults",
+)
+
+
+def _is_secret(path):
+    name = os.path.basename(path).lower()
+    if name in _ENV_TEMPLATE_OK:
+        return False
+    return any(fnmatch.fnmatch(name, g) for g in _SECRET_GLOBS)
+
+
+def _git_ignored(root, rel):
+    """Whether git ignores `rel` under `root`. False when `root` is not a git checkout or git is
+    missing, so the secret list above stays the backstop."""
+    git = shutil.which("git")
+    if not git or not os.path.exists(os.path.join(root, ".git")):
+        return False
+    try:
+        proc = subprocess.run([git, "-C", root, "check-ignore", "-q", "--", rel],
+                              capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return proc.returncode == 0
+
 
 # What ONE cited file may weigh when the learner opens it. Matches repo_fetch.MAX_VIEW_BYTES
 # on the hosted side so a lesson reads the same in both places.
@@ -340,11 +381,12 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_repo_file(self):
         """One file from the learner's own checkout, for reading beside the lesson that cites it.
 
-        THE SESSION'S CITATION LIST IS THE ENTIRE INPUT SURFACE. `repo_cited` is written by the
-        agent from the repo reader in code_trainer.py, which already refuses secrets, gitignored
-        files and binaries -- so this server needs no copy of that denylist, and a path nobody
-        cited can never be read. Same shape as the hosted side, where the allowlist is what the
-        lesson named and checked.
+        THE SESSION'S CITATION LIST IS THE ENTIRE INPUT SURFACE: a path nobody cited can never be
+        read, the same shape as the hosted side, where the allowlist is what the lesson named. In
+        the CLI, `repo_cited` comes from the repo reader in code_trainer.py, which already refuses
+        secrets, gitignored files and binaries; in the open skill the agent writes it, so every
+        path is checked here as well, the link it resolves to included: inside `repo_root`, not a
+        secret, not ignored by git, and text. A refusal reads like any unknown path.
         """
         from urllib.parse import parse_qs, urlparse
 
@@ -357,6 +399,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             target = safe_join(root, rel)
         except ValueError:
+            return self._send(404, json.dumps({"error": "no such file in this lesson"}))
+        if (_is_secret(rel) or _is_secret(target)
+                or _git_ignored(root, os.path.relpath(target, os.path.realpath(root)))):
             return self._send(404, json.dumps({"error": "no such file in this lesson"}))
         try:
             raw = open(target, "rb").read(REPO_VIEW_BYTES + 1)

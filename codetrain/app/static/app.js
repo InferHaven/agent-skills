@@ -161,9 +161,9 @@ function questionHtml(q) {
 }
 
 /* Open a file the lesson cited, read from the learner's own checkout by the local server. The
-   allowlist is `repo_cited`, which the agent built from the repo reader that already refuses
-   secrets, gitignored files and binaries -- so nothing here needs a second copy of that denylist,
-   and a path the model invented is never offered. */
+   allowlist is `repo_cited`, so a path the model invented is never offered, and the server checks
+   every listed path again before it reads it (inside `repo_root`, not a secret, not ignored by
+   git, text), because in the open skill the agent writes that list itself. */
 function wireRepoFiles(el, s) {
   const P = window.CTProse;
   const cited = (s && s.repo_cited) || [];
