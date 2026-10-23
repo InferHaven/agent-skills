@@ -111,6 +111,7 @@ body {
 .status[data-s="listening"] .dot { background: var(--good); animation: pulse 2.4s infinite; }
 .status[data-s="thinking"]  .dot { background: var(--accent); animation: pulse 1.1s infinite; }
 .status[data-s="waiting_for_you"] .dot { background: var(--accent-2); }
+.status[data-s="ended"] .dot { background: var(--ink-faint); animation: none; }
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
   70%  { box-shadow: 0 0 0 7px transparent; opacity: 0.7; }

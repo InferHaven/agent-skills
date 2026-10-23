@@ -5,6 +5,7 @@
 import { createEditor } from "./editor.js";
 import { runCode, runtimeAvailable, runtimeLang, probeBash } from "./runner.js";
 import { VISUALS } from "./visuals.js";
+import { createLiveness, endingFor, isFinished } from "./liveness.js";
 
 /* Lesson visuals reach this UI the same way they reach the hosted study screen: the managed API
    returns them, so the local server is a courier rather than an author. visuals.js is a byte copy
@@ -105,8 +106,14 @@ function md(src) {
 }
 function mdInline(src) { return md(src).replace(/^<p>|<\/p>\s*$/g, ""); }
 async function post(body) {
-  try { await fetch("/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
-  catch (e) {}
+  try {
+    await fetch("/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return true;
+  } catch (e) {
+    // The server may be gone. Ask now rather than at the next poll, so the page says so promptly.
+    tick();
+    return false;
+  }
 }
 function toast(html, ms = 4200) {
   const el = $("toast"); el.innerHTML = html; el.classList.add("show");
@@ -932,6 +939,8 @@ function renderMcqStep(step) {
   wrap.querySelectorAll("input").forEach((r) => r.addEventListener("change", updateSendGate));
 }
 function buildDone(s) {
+  // A finished lesson has nothing left to end, and the button used to stay on "Ending…" for good.
+  $("end-session").hidden = true;
   const el = $("lesson"); el.className = "done";
   el.innerHTML = `
     <p class="eyebrow">🎉 session complete</p>
@@ -1004,13 +1013,59 @@ function render(s) {
   if (awaiting && (cache.feedback !== sentFeedbackSig || cache.view !== sentView || idle)) unlockSubmit();
 }
 
+/* ---------- the server going away ---------- */
+/* ENDED_COPY is writer copy (brief H98, public-text register), placed word for word: a wording
+   change goes back through the pipeline, never an edit here. */
+const ENDED_COPY = {
+  done: {
+    label: "lesson done",
+    banner: "Your lesson is saved to your history. You can close this tab.",
+  },
+  stopped: {
+    label: "stopped",
+    banner: "The tutor stopped before the lesson finished. Your progress is saved and the lesson "
+      + "is still in progress. Start the lesson again to pick up where you left off. You can close "
+      + "this tab.",
+  },
+};
+const live = createLiveness();
+let lastFinished = false;
+let pollTimer = null;
+function showEnded() {
+  clearInterval(pollTimer);
+  const copy = ENDED_COPY[endingFor(lastFinished)];
+  $("status").dataset.s = "ended"; cache.statusS = "ended";
+  setText($("status-label"), copy.label);
+  $("end-session").hidden = true;
+  $("working").hidden = true;
+  $("paused-banner").hidden = true;
+  const banner = $("ended-banner");
+  banner.textContent = copy.banner;
+  banner.hidden = false;
+  // Nothing can be sent any more, so nothing should look sendable.
+  const send = $("send");
+  if (send) send.disabled = true;
+}
+
 /* ---------- boot ---------- */
 async function tick() {
-  try { const r = await fetch("/api/state", { cache: "no-store" }); render(await r.json()); } catch (e) {}
+  if (live.ended) return;
+  let s;
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    if (!r.ok) return;            // the server answered: it is there, just not well
+    s = await r.json();
+  } catch (e) {
+    if (live.fail()) showEnded();
+    return;
+  }
+  live.ok();
+  lastFinished = isFinished(s);
+  render(s);
 }
 (async function boot() {
   editor = await createEditor($("editor-mount"), { doc: "", lang: "python", onChange: () => { editorDirtyStep = cache.view; updateSendGate(); } });
   await probeBash().catch(() => {});      // enable bash Run if the server has a container runtime
   await tick();
-  setInterval(tick, POLL_MS);
+  pollTimer = setInterval(tick, POLL_MS);
 })();
