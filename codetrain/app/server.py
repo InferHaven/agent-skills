@@ -68,6 +68,8 @@ _SECRET_GLOBS = (
     "*.kdbx", "credentials", "credentials.json", "service-account*.json",
     "*.secret", ".secrets", "secrets.json", "secrets.yml", "secrets.yaml", "client_secret*",
     ".htpasswd", "*.ovpn", "wg*.conf",
+    # PuTTY private keys, and Terraform state: plain-text secrets. `*.tfstate.*` is the backups.
+    "*.ppk", "*.tfstate", "*.tfstate.*",
 )
 # Env templates are meant to be copied and committed: placeholders, not credentials.
 _ENV_TEMPLATE_OK = (
