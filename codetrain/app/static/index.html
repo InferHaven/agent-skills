@@ -1,18 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CodeTrain</title>
-  <link rel="stylesheet" href="fonts.css" />
+  <!-- The site's own sheet (font paths made flat), then this page's rules, then theme.js, which
+       stamps the paper and the light before the first paint. -->
+  <link rel="stylesheet" href="sheet.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="theme.js"></script>
 </head>
 <body>
-  <div class="grain" aria-hidden="true"></div>
-
   <header class="topbar">
     <div class="brand">
-      <span class="mark">Code<em>Train</em></span>
+      <span class="mark"><svg width="28" height="28" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#0f141b"/><rect x="0.75" y="0.75" width="38.5" height="38.5" rx="8.25" fill="none" stroke="#39aaaa" stroke-opacity="0.28"/><rect x="5" y="7" width="30" height="26" rx="5" fill="none" stroke="#39aaaa" stroke-width="2"/><path d="M5 14 H35" stroke="#39aaaa" stroke-width="1.3" opacity=".5"/><circle cx="9.5" cy="10.5" r="1.3" fill="#aa3939"/><circle cx="13.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><circle cx="17.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><rect x="11.5" y="18" width="17" height="11" rx="3.2" fill="#39aaaa"/><path d="M16 23.6 L18.9 26.5 L24 20.5" fill="none" stroke="#0f141b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>CodeTrain</span>
       <span class="title" id="title">Loading your session…</span>
     </div>
     <span class="spacer"></span>
@@ -20,15 +21,15 @@
     <div class="status" id="status" data-s="thinking" role="status" aria-live="polite" aria-atomic="true">
       <span class="dot" aria-hidden="true"></span><span id="status-label">connecting…</span>
     </div>
-    <button class="toggle" id="progress-btn" title="Your progress" aria-label="Open your progress" aria-haspopup="dialog">✦ progress</button>
-    <button class="toggle" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">◐ theme</button>
+    <button class="toggle" id="progress-btn" title="Your progress" aria-label="Open your progress" aria-haspopup="dialog">Progress</button>
+    <button class="themebtn" data-theme-toggle type="button">Auto</button>
     <button class="end-btn" id="end-session" title="Finish and save this session">End session</button>
   </header>
 
   <div class="paused-banner ended-banner" id="ended-banner" role="status" hidden></div>
 
   <div class="paused-banner" id="paused-banner" hidden>
-    ⏸ Session paused — switch to your terminal and say <b>“arm it”</b> to resume. The page stays live.
+    Session paused — switch to your terminal and say <b>“arm it”</b> to resume. The page stays live.
   </div>
 
   <main class="layout">
@@ -42,7 +43,7 @@
     <!-- WORK: editor + run + feedback + tests -->
     <section class="panel work" aria-label="Your work"><div class="pad">
       <div class="file-tab">
-        <span aria-hidden="true">✎</span><span class="name" id="file-name">scratch</span>
+        <span class="name" id="file-name">scratch</span>
         <span class="lang" id="file-lang">text</span>
         <select class="etheme" id="editor-theme" title="Editor theme" aria-label="Editor theme">
           <option value="dark">Dark</option>
@@ -50,23 +51,23 @@
           <option value="hacker">Hacker</option>
           <option value="light">Light</option>
         </select>
-        <button class="ed-expand" id="ed-expand" type="button" title="Expand editor (Esc to exit)" aria-label="Expand editor">⤢ Expand</button>
+        <button class="ed-expand" id="ed-expand" type="button" title="Expand editor (Esc to exit)" aria-label="Expand editor">Expand</button>
       </div>
 
       <div class="file-tabs" id="file-tabs" hidden></div>
       <div class="editor" id="editor-mount"></div>
 
       <div class="actions">
-        <button class="btn run" id="run">Run ▷</button>
-        <button class="btn primary" id="send">Send to tutor →</button>
+        <button class="btn run" id="run">Run</button>
+        <button class="btn primary" id="send">Send to tutor</button>
         <button class="btn ask" id="review" title="Get a full walkthrough — even if it isn't passing yet">Review my attempt</button>
         <button class="btn ghost" id="ref" title="Quick language reference — not the answer">Reference</button>
-        <button class="btn ghost" id="skip" title="Skip this step and move on">Skip ⏭</button>
+        <button class="btn ghost" id="skip" title="Skip this step and move on">Skip</button>
         <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
       </div>
       <div class="askrow">
         <input class="note-input" id="note" placeholder="ask a question, note what you tried, or @mention a file…" />
-        <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask ?</button>
+        <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask</button>
       </div>
       <p class="run-hint" id="run-hint">Tip: <b>Run</b> to check yourself (<kbd>⌘/Ctrl+↵</kbd>). Send when green — or <b>Review my attempt</b> anytime for a walkthrough, even if it's failing.</p>
 
@@ -92,7 +93,7 @@
         <div class="progress-label" id="prog-label">not started</div>
       </div>
       <div>
-        <h2>✦ What you've learned</h2>
+        <h2>What you've learned</h2>
         <ul class="learned" id="learned"><li class="empty">Your wins will collect here as you go.</li></ul>
       </div>
     </div></aside>
@@ -102,7 +103,7 @@
   <aside class="drawer" id="progress-drawer" role="dialog" aria-modal="true" aria-labelledby="progress-title" hidden>
     <div class="drawer-head">
       <h2 id="progress-title">Your progress</h2>
-      <button class="drawer-close" id="progress-close" aria-label="Close progress">✕</button>
+      <button class="drawer-close" id="progress-close" aria-label="Close progress"></button>
     </div>
     <div class="drawer-body" id="progress-body"></div>
   </aside>
@@ -120,6 +121,7 @@
        words. Loaded before app.js so window.CTGlossary exists at the first render. -->
   <script src="glossary.js"></script>
   <script src="prose.js"></script>
+  <script src="theme-toggle.js" defer></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

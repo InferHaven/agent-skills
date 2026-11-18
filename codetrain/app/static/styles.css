@@ -1,54 +1,29 @@
-/* CodeTrain — cool-slate theme.
-   Cool near-black + soft ink + the CodeTrain teal accent (#39aaaa),
-   with a sparing brand red (#aa3939). Dark-first; light via [data-theme="light"]. */
+/* CodeTrain's local lesson page (the CodeTrain CLI and CodeTrain Open Skill serve it).
+
+   ONE DESIGN WITH THE SITE. sheet.css, loaded first, is the site's own web/sheet.css with only
+   its two font paths made flat (this server serves flat files): the papers (Blueprint, Linen,
+   Graphite), light and dark, Archivo and JetBrains Mono, the one 2px corner. theme.js and
+   theme-toggle.js are the site's own files, byte for byte, so the paper and the light are chosen
+   here the way they are on the website. The names below are this page's own, kept so its rules
+   read as they did, each an alias of a sheet token: nothing here holds a colour of its own except
+   the editor's four palettes, which are a choice inside the editor, not the page. */
 
 :root {
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
-  --body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-
-  --bg:       #10151a;
-  --bg-2:     #161d23;
-  --panel:    #19222a;
-  --panel-2:  #1e2832;
-  --line:     #2a3742;
-  --line-2:   #384854;
-  --ink:      #e7eef2;
-  --ink-soft: #a6b3bd;
-  --ink-faint:#6d7c87;
-  --accent:   #39aaaa;
-  --accent-2: #5fc6c6;
-  --accent-ink:#06201f;
-  --good:     #5cb88a;
-  --good-bg:  #142420;
-  --retry:    #e0876b;
-  --retry-bg: #2a1b16;
-  --brand-2:  #aa3939;
-  --lamp:     rgba(57,170,170,0.16);
-  --shadow:   0 24px 60px -28px rgba(0,0,0,0.78);
-  --radius:   14px;
-}
-
-[data-theme="light"] {
-  --bg:       #eef2f4;
-  --bg-2:     #e6ecef;
-  --panel:    #ffffff;
-  --panel-2:  #f4f8fa;
-  --line:     #d8e1e7;
-  --line-2:   #bccbd4;
-  --ink:      #16212a;
-  --ink-soft: #46555f;
-  --ink-faint:#78888f;
-  --accent:   #1f7f7f;
-  --accent-2: #15706e;
-  --accent-ink:#ffffff;
-  --good:     #3f7d5a;
-  --good-bg:  #dceee4;
-  --retry:    #b9553a;
-  --retry-bg: #f4e2db;
-  --brand-2:  #9c3333;
-  --lamp:     rgba(31,127,127,0.12);
-  --shadow:   0 22px 50px -30px rgba(40,60,70,0.40);
+  --body: var(--sans);
+  --bg-2: var(--sheet);
+  --line-2: color-mix(in srgb, var(--ln) 45%, transparent);
+  --ink-soft: var(--muted);
+  --ink-faint: var(--muted);
+  --accent: var(--mint);
+  --accent-2: var(--mint);
+  --accent-ink: var(--on-mint);
+  --good-bg: color-mix(in srgb, var(--good) 14%, var(--panel));
+  --retry: var(--redline);
+  --retry-bg: color-mix(in srgb, var(--redline) 12%, var(--panel));
+  --brand-2: var(--red);
+  --lamp: color-mix(in srgb, var(--mint) 16%, transparent);
+  --shadow: none;
+  --scrim: color-mix(in srgb, var(--bg) 62%, transparent);
 }
 
 * { box-sizing: border-box; }
@@ -61,7 +36,7 @@ body {
   color: var(--ink);
   background:
     radial-gradient(1200px 600px at 12% -8%, var(--lamp), transparent 60%),
-    radial-gradient(900px 500px at 110% 0%, rgba(57,170,170,0.05), transparent 55%),
+    radial-gradient(900px 500px at 110% 0%, color-mix(in srgb, var(--mint) 5%, transparent), transparent 55%),
     var(--bg);
   background-attachment: fixed;
   line-height: 1.55;
@@ -70,11 +45,6 @@ body {
 }
 
 /* fine grain overlay for tactile depth */
-.grain {
-  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-  opacity: 0.035; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* ---------- top bar ---------- */
 .topbar {
@@ -87,10 +57,11 @@ body {
 }
 .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .brand .mark {
-  font-family: var(--display); font-weight: 900; font-size: 1.35rem;
-  letter-spacing: -0.02em; color: var(--accent);
+  display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
+  font-family: var(--display); font-stretch: 106%; font-weight: 700; font-size: 17px;
+  letter-spacing: 0; color: var(--ink);
 }
-.brand .mark em { font-style: italic; color: var(--ink); }
+.brand .mark svg { flex: 0 0 auto; display: block; }
 .title {
   font-family: var(--display); font-weight: 600; font-size: 1.02rem;
   color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -99,7 +70,7 @@ body {
 
 .badge {
   font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line-2);
+  padding: 5px 11px; border-radius: var(--radius); border: 1px solid var(--line-2);
   color: var(--ink-soft); background: var(--panel);
 }
 .badge.repo    { color: var(--accent); border-color: var(--accent); }
@@ -120,7 +91,7 @@ body {
 
 .toggle {
   font-family: var(--body); font-size: 0.8rem; color: var(--ink-soft);
-  background: var(--panel); border: 1px solid var(--line-2); border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius);
   padding: 6px 13px; cursor: pointer; transition: border-color .2s, color .2s;
 }
 .toggle:hover { color: var(--ink); border-color: var(--accent); }
@@ -128,7 +99,7 @@ body {
 /* paused banner */
 .paused-banner {
   margin: 0 clamp(16px, 4vw, 40px); margin-top: 12px; padding: 11px 16px;
-  border: 1px solid var(--accent); border-radius: 10px; background: var(--panel);
+  border: 1px solid var(--accent); border-radius: var(--radius); background: var(--panel);
   color: var(--ink-soft); font-size: 0.88rem;
 }
 .paused-banner b { color: var(--accent); }
@@ -185,8 +156,8 @@ body {
    the two apps name their design tokens differently. */
 .step-q {
   margin: 0 0 15px; padding: 9px 0 9px 14px; border-left: 2px solid var(--accent);
-  border-radius: 0 8px 8px 0;
-  background: linear-gradient(90deg, rgba(57,170,170,.09), transparent 72%);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mint) 9%, transparent), transparent 72%);
 }
 .step-q .eyebrow { margin: 0 0 3px; opacity: .8; font-size: 0.66rem; }
 .step-q-b { font-family: var(--display); font-size: 1.06rem; line-height: 1.5; color: var(--ink); }
@@ -203,7 +174,7 @@ body {
 }
 .fileref code {
   font-family: var(--mono); font-size: 0.86em; background: var(--bg); color: var(--accent-2);
-  padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line);
+  padding: 1px 6px; border-radius: var(--radius); border: 1px solid var(--line);
   border-bottom-color: var(--accent); transition: background .14s ease;
 }
 .fileref code::before { content: "\25A7"; margin-right: 4px; opacity: .6; }
@@ -223,7 +194,7 @@ body {
 .rf-out:hover { text-decoration: underline; }
 .rf-box {
   display: flex; align-items: flex-start; min-width: 0; max-height: 62vh; overflow: auto;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .rf-gut {
   position: sticky; left: 0; z-index: 1; flex: 0 0 auto; padding: 12px 10px; text-align: right;
@@ -252,11 +223,11 @@ body {
 .md ul { margin: 0 0 1em; padding-left: 1.2em; }
 .md li { margin: 0.25em 0; }
 .md strong { color: var(--ink); font-weight: 600; }
-.md code.ic { font-family: var(--mono); font-size: 0.86em; background: var(--bg); color: var(--accent-2); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line); }
+.md code.ic { font-family: var(--mono); font-size: 0.86em; background: var(--bg); color: var(--accent-2); padding: 1px 6px; border-radius: var(--radius); border: 1px solid var(--line); }
 .md pre.code {
   font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; color: var(--ink);
   background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent);
-  border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0 0 1em;
+  border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; margin: 0 0 1em;
 }
 .md ol { margin: 0 0 1em; padding-left: 1.4em; }
 .md li::marker { color: var(--accent); }
@@ -265,11 +236,11 @@ body {
 .md > :last-child { margin-bottom: 0; }
 /* A table the tutor wrote (prose.js::toHtml). It scrolls inside its own box rather than pushing
    the column sideways, and its header is set like the other small labels in this UI. */
-.md-table { margin: 0 0 1em; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+.md-table { margin: 0 0 1em; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .md-table table { width: 100%; border-collapse: collapse; font-size: 0.9rem; line-height: 1.45; }
 .md-table th {
   text-align: left; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--accent); background: rgba(57, 170, 170, 0.08); padding: 8px 12px; border-bottom: 1px solid var(--line);
+  color: var(--accent); background: color-mix(in srgb, var(--mint) 8%, transparent); padding: 8px 12px; border-bottom: 1px solid var(--line);
 }
 .md-table td { padding: 8px 12px; vertical-align: top; color: var(--ink-soft); }
 .md-table tbody tr + tr td { border-top: 1px solid var(--line); }
@@ -291,11 +262,11 @@ details.held summary:hover { color: var(--ink); }
 details.held pre.code {
   font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; color: var(--ink);
   background: var(--bg); border: 1px dashed var(--line);
-  border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 8px 0 0;
+  border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; margin: 8px 0 0;
 }
 
 .task {
-  margin-top: 18px; padding: 14px 16px; border-radius: 10px;
+  margin-top: 18px; padding: 14px 16px; border-radius: var(--radius);
   background: var(--bg); border: 1px dashed var(--line-2);
 }
 .task .eyebrow { color: var(--accent-2); }
@@ -305,7 +276,7 @@ details.held pre.code {
 .hint-btn {
   align-self: flex-start; font-family: var(--body); font-size: 0.82rem; cursor: pointer;
   color: var(--accent); background: transparent; border: 1px solid var(--line-2);
-  border-radius: 999px; padding: 6px 14px; transition: background .2s, color .2s;
+  border-radius: var(--radius); padding: 6px 14px; transition: background .2s, color .2s;
 }
 .hint-btn:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .hint-btn:disabled { opacity: .4; cursor: default; }
@@ -326,12 +297,12 @@ details.held pre.code {
 .file-tab .name { color: var(--ink); }
 .file-tab .lang {
   margin-left: auto; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--accent); border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 8px;
+  color: var(--accent); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 2px 8px;
 }
 
 .editor {
   position: relative; background: var(--bg); border: 1px solid var(--line);
-  border-radius: 10px; overflow: hidden; min-height: 230px;
+  border-radius: var(--radius); overflow: hidden; min-height: 230px;
 }
 .editor:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--lamp); }
 
@@ -340,7 +311,7 @@ details.held pre.code {
 .file-tab .etheme {
   margin-left: 8px; font-family: var(--mono); font-size: 0.68rem; cursor: pointer;
   background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line-2);
-  border-radius: 6px; padding: 2px 6px;
+  border-radius: var(--radius); padding: 2px 6px;
 }
 .editor.etheme-dark {
   --bg:#10151a; --bg-2:#161d23; --ink:#e7eef2; --ink-soft:#a6b3bd; --ink-faint:#6d7c87;
@@ -376,7 +347,7 @@ details.held pre.code {
 .celayers .chl { z-index: 0; pointer-events: none; color: var(--ink); background: transparent; }
 .celayers .chl code { font: inherit; white-space: pre; background: none; padding: 0; }
 .celayers .cinput { z-index: 1; color: transparent; background: transparent; caret-color: var(--accent); resize: none; outline: none; }
-.celayers .cinput::selection { background: rgba(57,170,170,0.30); }
+.celayers .cinput::selection { background: color-mix(in srgb, var(--mint) 30%, transparent); }
 
 /* full-page pop-out: distraction-free editing of large files.
    NOTE: #editor-mount carries BOTH .editor and the editor's own layout class (.cwrap=grid /
@@ -384,7 +355,7 @@ details.held pre.code {
    override that display, or the gutter/code columns collapse — so we only reposition + resize. */
 .ed-backdrop {
   position: fixed; inset: 0; z-index: 9990;
-  background: rgba(4, 8, 11, 0.66); backdrop-filter: blur(3px);
+  background: var(--scrim); backdrop-filter: blur(3px);
 }
 body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 
@@ -394,7 +365,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
      fill — never relying on implicit grid-row sizing, which is what collapsed the row before and
      crammed the text to the bottom. 6vmin = inset top+bottom. */
   height: calc(100vh - 6vmin); min-height: 0; max-height: none;
-  box-shadow: 0 24px 70px rgba(0,0,0,.6); border-color: var(--accent);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--bg) 60%, transparent); border-color: var(--accent);
 }
 /* Fill the popped-out frame. The mount IS the grid (.cwrap, columns auto/1fr): make its single row
    fill the height so both grid cells (gutter + .celayers) stretch. The textarea fallback (.ta-wrap,
@@ -412,13 +383,13 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
   display: inline-block; position: absolute; top: 10px; right: 12px; z-index: 2;
   font-family: var(--mono); font-size: 0.72rem; cursor: pointer;
   background: var(--bg-2); color: var(--ink); border: 1px solid var(--accent);
-  border-radius: 7px; padding: 5px 10px; box-shadow: 0 4px 16px rgba(0,0,0,.4);
+  border-radius: var(--radius); padding: 5px 10px; box-shadow: 0 4px 16px color-mix(in srgb, var(--bg) 40%, transparent);
 }
 .ed-close:hover { background: var(--accent); color: var(--bg); }
 .ed-expand {
   font-family: var(--mono); font-size: 0.68rem; cursor: pointer; margin-left: 6px;
   background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line-2);
-  border-radius: 6px; padding: 2px 7px;
+  border-radius: var(--radius); padding: 2px 7px;
 }
 .ed-expand:hover { color: var(--ink); border-color: var(--accent); }
 
@@ -427,7 +398,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .mcq .mcq-q { font-weight: 600; margin: 6px 0 10px; }
 .mcq .mcq-opt {
   display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; padding: 9px 12px;
-  border: 1px solid var(--line-2); border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--line-2); border-radius: var(--radius); cursor: pointer;
 }
 .mcq .mcq-opt:hover { border-color: var(--accent); }
 .mcq .mcq-opt:has(input:checked) { border-color: var(--accent); background: var(--bg-2); }
@@ -435,12 +406,12 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 /* @-mention autocomplete */
 .mention-pop {
   position: absolute; z-index: 9999; max-height: 240px; overflow: auto;
-  background: var(--panel); border: 1px solid var(--line-2); border-radius: 9px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.45); padding: 4px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--bg) 45%, transparent); padding: 4px;
 }
 .mention-pop .mi {
   font-family: var(--mono); font-size: 0.78rem; color: var(--ink-soft);
-  padding: 5px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  padding: 5px 8px; border-radius: var(--radius); cursor: pointer; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
 .mention-pop .mi.on, .mention-pop .mi:hover { background: var(--bg-2); color: var(--ink); }
@@ -450,7 +421,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .file-tabs .ftab {
   font-family: var(--mono); font-size: 0.72rem; cursor: pointer;
   background: var(--bg-2); color: var(--ink-soft); border: 1px solid var(--line);
-  border-radius: 7px 7px 0 0; padding: 5px 10px; max-width: 280px;
+  border-radius: var(--radius); padding: 5px 10px; max-width: 280px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .file-tabs .ftab.on { color: var(--ink); border-color: var(--accent); background: var(--bg); }
@@ -484,7 +455,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .btn {
   font-family: var(--body); font-weight: 600; font-size: 0.88rem; cursor: pointer;
-  border-radius: 9px; padding: 10px 18px; border: 1px solid transparent;
+  border-radius: var(--radius); padding: 10px 18px; border: 1px solid transparent;
   transition: transform .08s ease, background .2s, border-color .2s, color .2s;
 }
 .btn:active { transform: translateY(1px); }
@@ -494,7 +465,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .btn.ghost:hover { color: var(--ink); border-color: var(--accent); }
 .btn:disabled { opacity: .55; cursor: default; transform: none; }
 .btn.primary.sent { background: transparent; color: var(--accent); border-color: var(--accent); }
-.btn.run { background: transparent; color: var(--good); border-color: var(--good); }
+.btn.run { background: transparent; color: var(--ink); border-color: var(--good); }
 .btn.run:hover { background: var(--good); color: var(--bg); }
 .btn.ask { background: transparent; color: var(--accent); border-color: var(--accent); }
 .btn.ask:hover { background: var(--accent); color: var(--accent-ink); }
@@ -503,13 +474,13 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .run-hint b { color: var(--good); }
 
 /* run output (stdout/stderr) */
-.output { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.output { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .output .obar { padding: 8px 14px; background: var(--bg-2); font-family: var(--mono); font-size: 0.7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
 .output pre { margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 0.8rem; line-height: 1.5; color: var(--ink-soft); background: var(--bg); max-height: 220px; overflow: auto; white-space: pre-wrap; }
 .output pre .err { color: var(--retry); }
 
 /* structured test cases */
-.cases { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.cases { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .cases .cbar { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: var(--bg-2); font-family: var(--mono); font-size: 0.7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
 .cases .ctall { margin-left: auto; color: var(--ink); }
 .cstamp, .ostamp { margin-left: 10px; color: var(--ink-faint); font-size: 0.64rem; letter-spacing: .04em; text-transform: none; }
@@ -519,25 +490,30 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 .caselist { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
-.case { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: baseline; padding: 7px 10px; border-radius: 8px; font-size: 0.86rem; }
-.case .ci { font-weight: 700; }
-.case.pass .ci { color: var(--good); }
-.case.fail { background: var(--retry-bg); } .case.fail .ci { color: var(--retry); }
-.case.pending .ci { color: var(--ink-faint); }
+.case { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: baseline; padding: 7px 10px; border-radius: var(--radius); font-size: 0.86rem; }
+/* A check's mark is drawn: a tick for passed, a cross for failed, a ring while it waits. The word
+   is there for a screen reader (.sr). */
+.case .ci { position: relative; display: inline-block; width: 14px; height: 14px; }
+.case.pass .ci::before { content: ""; position: absolute; left: 2px; top: 2px; width: 9px; height: 5px; border-left: 2px solid var(--good); border-bottom: 2px solid var(--good); transform: rotate(-45deg); }
+.case.fail .ci::before, .case.fail .ci::after { content: ""; position: absolute; left: 6px; top: 1px; width: 2px; height: 12px; background: var(--retry); transform: rotate(45deg); }
+.case.fail .ci::after { transform: rotate(-45deg); }
+.case.pending .ci::before { content: ""; position: absolute; inset: 2px; border: 2px solid var(--ink-faint); border-radius: 50%; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.case.fail { background: var(--retry-bg); }
 .case.pending { color: var(--ink-faint); }
 .case .cn { color: var(--ink); }
 .case .cx { color: var(--ink-faint); font-size: 0.8rem; }
 .case .cio { grid-column: 2; font-family: var(--mono); font-size: 0.76rem; color: var(--ink-soft); margin-top: 3px; }
-.case .cio code { color: var(--accent-2); background: var(--bg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+.case .cio code { color: var(--accent-2); background: var(--bg); padding: 1px 5px; border-radius: var(--radius); border: 1px solid var(--line); }
 .note-input {
   flex: 1; min-width: 160px; font-family: var(--body); font-size: 0.85rem; color: var(--ink);
-  background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px;
 }
 .note-input:focus { outline: none; border-color: var(--accent); }
 
 /* feedback + tests */
 .feedback {
-  border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--line);
   background: var(--panel-2); animation: rise .4s ease both;
 }
 .feedback.pass  { border-color: var(--good); background: var(--good-bg); }
@@ -557,25 +533,25 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 /* flash so it's obvious where a tutor reply / nudge landed */
 .feedback.flash { box-shadow: 0 0 0 3px var(--lamp); transition: box-shadow .25s ease; }
 /* patch-back: propose writing the learner's accepted code into their repo */
-.patch-panel { border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; background: var(--bg-2); animation: rise .4s ease both; }
+.patch-panel { border: 1px solid var(--accent); border-radius: var(--radius); padding: 14px 16px; background: var(--bg-2); animation: rise .4s ease both; }
 .patch-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
 .patch-head code { font-family: var(--mono); font-size: 0.82rem; color: var(--accent); }
 .patch-sum { color: var(--ink-soft); font-size: 0.9rem; margin: 6px 0 0; }
-.patch-panel .diff { margin: 10px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 0.78rem; line-height: 1.5; white-space: pre; }
+.patch-panel .diff { margin: 10px 0 0; padding: 10px 12px; max-height: 320px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 0.78rem; line-height: 1.5; white-space: pre; }
 .diff .dl-add { color: var(--good); } .diff .dl-del { color: var(--brand-2); } .diff .dl-hunk { color: var(--accent-2); }
 .patch-stats { margin-left: auto; font-family: var(--mono); font-size: 0.78rem; }
 .patch-stats .dl-add { color: var(--good); } .patch-stats .dl-del { color: var(--brand-2); }
 /* the overlay's full-diff view: tall and scrollable, never clamped like the inline panel */
 .diff-full { max-height: 68vh; overflow: auto; padding: 10px 12px; background: var(--bg);
-  border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono);
+  border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono);
   font-size: 0.78rem; line-height: 1.5; white-space: pre; }
 .patch-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .patch-note { color: var(--ink-faint); font-size: 0.78rem; }
 .patch-note code { font-family: var(--mono); }
 
 /* overlay popup (quick language reference) */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.62); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.overlay-box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; max-width: 760px; width: 100%; max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 62%, transparent); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.overlay-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); max-width: 760px; width: 100%; max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px color-mix(in srgb, var(--bg) 50%, transparent); }
 .overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--line); font-weight: 700; }
 .overlay-body { padding: 16px 18px; overflow: auto; }
 .reftab { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
@@ -584,7 +560,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .overlay-body .muted { color: var(--ink-soft); }
 
 .tests {
-  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
 }
 .tests .bar {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
@@ -608,8 +584,8 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .meta-row { font-size: 0.85rem; color: var(--ink-soft); }
 .meta-row b { color: var(--ink); font-weight: 600; }
 
-.progress-track { height: 7px; border-radius: 999px; background: var(--bg); overflow: hidden; margin-top: 8px; border: 1px solid var(--line); }
-.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 999px; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+.progress-track { height: 7px; border-radius: var(--radius); background: var(--bg); overflow: hidden; margin-top: 8px; border: 1px solid var(--line); }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: var(--radius); transition: width .5s cubic-bezier(.2,.7,.2,1); }
 .progress-label { font-size: 0.8rem; color: var(--ink-faint); margin-top: 6px; }
 
 .learned { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -618,7 +594,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 }
 .learned li.fresh { animation: rise .4s ease both; }
 .learned li::before {
-  content: "✦"; position: absolute; left: 0; top: 0; color: var(--accent); font-size: 0.85rem;
+  content: ""; position: absolute; left: 2px; top: .42em; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); box-sizing: border-box;
 }
 .empty { font-size: 0.84rem; color: var(--ink-faint); font-style: italic; }
 
@@ -631,14 +607,14 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   font-family: var(--body); font-size: 0.85rem; cursor: pointer; color: var(--ink-soft);
-  background: var(--bg); border: 1px solid var(--line-2); border-radius: 999px; padding: 8px 16px;
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 8px 16px;
   transition: all .15s;
 }
 .chip:hover { border-color: var(--accent); color: var(--ink); }
 .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .intake textarea {
   width: 100%; font-family: var(--body); font-size: 0.92rem; color: var(--ink);
-  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
   resize: vertical; min-height: 70px;
 }
 .intake textarea:focus { outline: none; border-color: var(--accent); }
@@ -647,9 +623,10 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .toast {
   position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 140%);
   background: var(--panel); color: var(--ink); border: 1px solid var(--accent);
-  border-radius: 12px; padding: 13px 20px; box-shadow: var(--shadow); z-index: 200;
+  border-radius: var(--radius); padding: 13px 20px; box-shadow: var(--shadow); z-index: 200;
   font-size: 0.9rem; max-width: 90vw; transition: transform .4s cubic-bezier(.2,.8,.2,1);
 }
+.toast:not(.show) { visibility: hidden; }
 .toast.show { transform: translate(-50%, 0); }
 .toast b { color: var(--accent); }
 
@@ -664,7 +641,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .end-btn {
   font-family: var(--body); font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-left: 4px;
   color: var(--ink-soft); background: transparent; border: 1px solid var(--line-2);
-  border-radius: 999px; padding: 6px 14px; transition: all .2s;
+  border-radius: var(--radius); padding: 6px 14px; transition: all .2s;
 }
 .end-btn:hover { color: var(--retry); border-color: var(--retry); }
 .end-btn.armed { color: var(--bg); background: var(--retry); border-color: var(--retry); }
@@ -673,16 +650,16 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 /* ask row + shortcut hint */
 .askrow { display: flex; gap: 10px; align-items: center; }
 .btn.ask2 { white-space: nowrap; }
-.run-hint kbd { font-family: var(--mono); font-size: 0.72rem; background: var(--bg); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 5px; color: var(--ink-soft); }
+.run-hint kbd { font-family: var(--mono); font-size: 0.72rem; background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 1px 5px; color: var(--ink-soft); }
 
 /* "your journey" profile widget */
 .pwelcome { font-size: 0.86rem; color: var(--ink-soft); margin: 2px 0 8px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { font-size: 0.74rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 10px; }
+.pchip { font-size: 0.74rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 4px 10px; }
 
 /* confetti */
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 9998; overflow: hidden; }
-.cpiece { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px; opacity: 0.92; animation: confall linear forwards; }
+.cpiece { position: absolute; top: -14px; width: 9px; height: 14px; border-radius: var(--radius); opacity: 0.92; animation: confall linear forwards; }
 @keyframes confall {
   0% { transform: translateY(-12vh) rotate(0deg); }
   100% { transform: translateY(112vh) rotate(720deg); }
@@ -705,7 +682,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
   grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px;
   font-family: var(--mono); font-size: 0.76rem; color: var(--ink-faint);
 }
-.case .cdiff code { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
+.case .cdiff code { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 1px 6px; }
 .case .cd-exp code { color: var(--good); }
 .case .cd-got code, .case .cd-err { color: var(--retry); }
 
@@ -736,7 +713,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 /* `hidden` must beat the display:flex/fixed below (author CSS otherwise overrides
    the UA `[hidden]{display:none}`, leaving the drawer stuck open on load). */
 .drawer[hidden], .drawer-backdrop[hidden] { display: none !important; }
-.drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; }
+.drawer-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 50%, transparent); z-index: 300; }
 .drawer {
   position: fixed; top: 0; right: 0; height: 100%; width: min(420px, 92vw); z-index: 301;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -751,12 +728,16 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .drawer-head h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; color: var(--ink); margin: 0; }
 .drawer-close {
   font-family: var(--body); background: transparent; border: 1px solid var(--line-2);
-  color: var(--ink-soft); border-radius: 8px; padding: 4px 11px; cursor: pointer; transition: all .2s;
+  color: var(--ink-soft); border-radius: var(--radius); padding: 4px 11px; cursor: pointer; transition: all .2s;
 }
 .drawer-close:hover { color: var(--ink); border-color: var(--accent); }
+/* The close mark is drawn, not a glyph. */
+.drawer-close { position: relative; width: 32px; height: 30px; padding: 0; }
+.drawer-close::before, .drawer-close::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 2px; margin: -1px 0 0 -6px; background: currentColor; transform: rotate(45deg); }
+.drawer-close::after { transform: rotate(-45deg); }
 .drawer-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; }
 .pg-stats { display: flex; flex-wrap: wrap; gap: 8px; }
-.pg-stat { background: var(--bg); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; font-size: 0.82rem; color: var(--ink); }
+.pg-stat { background: var(--bg); border: 1px solid var(--line-2); border-radius: var(--radius); padding: 6px 12px; font-size: 0.82rem; color: var(--ink); }
 .pg-sec h3 { font-family: var(--display); font-weight: 600; font-size: 0.95rem; color: var(--ink); margin: 0 0 8px; }
 .pg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .pg-list li { font-size: 0.86rem; color: var(--ink-soft); }
@@ -773,7 +754,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .working {
   position: fixed; left: 50%; top: 72px; transform: translateX(-50%);
   align-items: center; gap: 10px; z-index: 250;
-  background: var(--panel); border: 1px solid var(--line-2); border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius);
   padding: 6px 16px 6px 8px; box-shadow: var(--shadow);
   color: var(--ink-soft); font-size: 0.86rem;
 }
@@ -784,17 +765,17 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
    Built as DOM by visuals.js, which is a byte copy of the hosted study screen's
    renderer. Token names differ between the two apps, so the CSS is written per
    app against local variables rather than copied across. */
-.vis { border: 1px solid var(--line); border-radius: 11px; padding: 13px; margin: 14px 0; background: var(--panel-2); }
+.vis { border: 1px solid var(--line); border-radius: var(--radius); padding: 13px; margin: 14px 0; background: var(--panel-2); }
 .vis-h { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 10px; }
 .vis-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
-.vis-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 7px; width: 26px; height: 26px; font-size: 15px; line-height: 1; cursor: pointer; }
+.vis-btn { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: var(--radius); width: 26px; height: 26px; font-size: 15px; line-height: 1; cursor: pointer; }
 .vis-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .vis-btn:disabled { opacity: .35; cursor: default; }
 .vis-count { font-size: 12px; color: var(--ink-soft); }
 .vis-cap { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 9px; }
 .vis-grid { display: flex; flex-direction: column; gap: 4px; }
-.vis-row { display: flex; gap: 10px; padding: 5px 8px; border-radius: 7px; border: 1px solid transparent; font-size: 13px; }
-.vis-row.changed { border-color: var(--accent); background: rgba(57, 170, 170, .09); }
+.vis-row { display: flex; gap: 10px; padding: 5px 8px; border-radius: var(--radius); border: 1px solid transparent; font-size: 13px; }
+.vis-row.changed { border-color: var(--accent); background: color-mix(in srgb, var(--mint) 9%, transparent); }
 .vis-name { color: var(--ink-soft); min-width: 88px; flex: 0 0 auto; }
 .vis-val { color: var(--ink); word-break: break-all; }
 .vis-scroll { overflow-x: auto; }
@@ -802,7 +783,7 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .vis-node { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
 /* The one box the step is about. Accent fill at low alpha rather than a heavier border, so the
    emphasis reads at a glance without the diagram gaining a second weight of line. */
-.vis-node.focus { fill: rgba(57, 170, 170, .12); stroke: var(--accent); }
+.vis-node.focus { fill: color-mix(in srgb, var(--mint) 12%, transparent); stroke: var(--accent); }
 .vis-node-t { fill: var(--ink); font-size: 12px; font-family: var(--mono); }
 .vis-node-t.focus { fill: var(--accent); }
 .vis-edge { fill: none; stroke: var(--ink-faint); stroke-width: 1; }
@@ -813,11 +794,11 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .vis-edge-t { fill: var(--ink-faint); font-size: 10.5px; font-family: var(--body); }
 .vis-edge-plate { fill: var(--panel-2); stroke: none; }
 .vis-cmp { display: flex; flex-direction: column; gap: 2px; }
-.vis-cmp-row { display: grid; grid-template-columns: 16px 1fr 1fr; gap: 9px; padding: 4px 7px; border-radius: 6px; font-size: 12.5px; }
+.vis-cmp-row { display: grid; grid-template-columns: 16px 1fr 1fr; gap: 9px; padding: 4px 7px; border-radius: var(--radius); font-size: 12.5px; }
 .vis-cmp-row.head { color: var(--ink-soft); text-transform: uppercase; font-size: 10.5px; letter-spacing: .06em; }
-.vis-cmp-row.changed { background: rgba(57, 170, 170, .1); }
-.vis-cmp-row.added { background: rgba(92, 184, 138, .14); }
-.vis-cmp-row.removed { background: rgba(192, 57, 43, .13); }
+.vis-cmp-row.changed { background: color-mix(in srgb, var(--mint) 10%, transparent); }
+.vis-cmp-row.added { background: color-mix(in srgb, var(--good) 14%, transparent); }
+.vis-cmp-row.removed { background: color-mix(in srgb, var(--redline) 13%, transparent); }
 /* table widget — deliberately NOT shared with the study app's CSS: same markup, different
    design tokens (--ink-soft here vs --muted there). Only visuals.js is a byte-identical copy. */
 .vis-table { width: 100%; border-collapse: collapse; font-size: 12.5px; display: block; overflow-x: auto; }
@@ -836,8 +817,8 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .ct-term:hover, .ct-term:focus-visible { color: var(--accent); border-bottom-style: solid; }
 .ct-gloss { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 .ct-gloss-box { position: fixed; pointer-events: auto; width: min(320px, calc(100vw - 20px));
-  min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-  padding: 13px 15px 14px; box-shadow: 0 18px 44px -18px rgba(0,0,0,.6); }
+  min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 13px 15px 14px; box-shadow: 0 18px 44px -18px color-mix(in srgb, var(--bg) 60%, transparent); }
 .ct-gloss-h { display: flex; align-items: baseline; gap: 10px; }
 .ct-gloss-t { flex: 1; min-width: 0; font-family: var(--mono); font-size: .84rem;
   color: var(--accent); overflow-wrap: anywhere; }
@@ -846,9 +827,17 @@ body.ed-zoom { overflow: hidden; }   /* freeze the page behind the overlay */
 .ct-gloss-x:hover { color: var(--ink); }
 .ct-gloss-s { margin-top: 7px; font-size: .86rem; line-height: 1.5; color: var(--ink); }
 .ct-gloss-b { margin-top: 7px; font-size: .8rem; line-height: 1.55; color: var(--ink-soft); }
-.ct-gloss-e { margin-top: 9px; padding: 8px 10px; background: var(--panel-2); border-radius: 8px;
+.ct-gloss-e { margin-top: 9px; padding: 8px 10px; background: var(--panel-2); border-radius: var(--radius);
   font-family: var(--mono); font-size: .76rem; color: var(--ink); white-space: pre-wrap;
   overflow-x: auto; }
 .ct-gloss-a { margin-top: 10px; font-size: .76rem; color: var(--ink-soft); }
 .ct-gloss-rel { border-bottom-color: var(--ink-soft); cursor: pointer; }
 .ct-gloss-d { display: inline-block; margin-top: 10px; font-size: .76rem; color: var(--accent); }
+
+/* A phone: the header wraps rather than run off the screen; the lesson's name gives way, since the
+   lesson panel names it again right under the header. */
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; gap: 10px 12px; padding: 12px 16px; }
+  .topbar .title { display: none; }
+  .topbar .spacer { flex: 1 0 0; }
+}

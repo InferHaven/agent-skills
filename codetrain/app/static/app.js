@@ -46,17 +46,18 @@ let sentFeedbackSig = null;
 let sentView = null;
 let sawThinking = false;   // saw tutor_status flip to "thinking" since we locked (gates idle-unlock)
 
-/* ---------- theme ---------- */
-(function initTheme() {
-  const saved = localStorage.getItem("tutor-theme");
-  const sys = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-  document.documentElement.dataset.theme = saved || sys;
+/* ---------- theme ----------
+   The paper and the light are the site's own control: theme.js stamps them before the first paint
+   and theme-toggle.js draws the button. A choice made with this page's old light/dark toggle
+   ("tutor-theme") carries over once, then the old key is gone. */
+(function carryOldTheme() {
+  try {
+    const old = localStorage.getItem("tutor-theme");
+    if (!old) return;
+    if (!localStorage.getItem("ct-app-theme") && window.ctTheme) window.ctTheme.set(old);
+    localStorage.removeItem("tutor-theme");
+  } catch (e) { /* storage blocked: the default stands */ }
 })();
-$("theme-toggle").addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("tutor-theme", next);
-});
 
 /* ---------- editor theme (the typing-area palette, persisted) ---------- */
 const EDITOR_THEMES = ["dark", "midnight", "hacker", "light"];
@@ -194,7 +195,7 @@ function openOverlay(title, html) {
   const o = document.createElement("div");
   o.className = "overlay"; o.id = "overlay";
   o.innerHTML = `<div class="overlay-box"><div class="overlay-head"><span>${esc(title)}</span>
-    <button class="btn ghost" id="ov-close">Close ✕</button></div><div class="overlay-body">${html}</div></div>`;
+    <button class="btn ghost" id="ov-close">Close</button></div><div class="overlay-body">${html}</div></div>`;
   document.body.appendChild(o);
   $("ov-close").addEventListener("click", closeOverlay);
   o.addEventListener("click", (e) => { if (e.target === o) closeOverlay(); });
@@ -257,7 +258,7 @@ function lockSubmit() {
 function unlockSubmit() {
   awaiting = false;
   const s = $("send"), r = $("review");
-  r.disabled = false; s.classList.remove("sent"); s.textContent = "Send to tutor →";
+  r.disabled = false; s.classList.remove("sent"); s.textContent = "Send to tutor";
   updateSendGate();                           // Send re-locks unless still green
 }
 function submit(reviewRequest) {
@@ -489,7 +490,7 @@ function renderProgress(data) {
   const sec = (title, inner) => `<div class="pg-sec"><h3>${title}</h3>${inner}</div>`;
   const list = (items) => items.length ? `<ul class="pg-list">${items.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<p class="pg-empty">—</p>`;
   const stats = [];
-  if (p.streak) stats.push(`🔥 ${esc(p.streak)}-day streak`);
+  if (p.streak) stats.push(`${esc(p.streak)}-day streak`);
   if (p.sessions != null) stats.push(`${esc(p.sessions)} sessions`);
   if (p.concepts != null) stats.push(`${esc(p.concepts)} concepts`);
   const langs = (p.languages && typeof p.languages === "object")
@@ -535,9 +536,9 @@ async function onRun() {
     renderOutput(
       findings.length
         ? findings.map((f) => `${f.line ? "L" + f.line + ": " : ""}[${f.rule}] ${f.msg}`).join("\n")
-        : "✓ Lint clean — Send it and the tutor walks the build layer by layer.",
+        : "Lint clean — Send it and the tutor walks the build layer by layer.",
       "", new Date().toLocaleTimeString());
-    toast(findings.length ? `Lint: ${findings.length} finding(s) — see output.` : "Lint clean ✓", 2600);
+    toast(findings.length ? `Lint: ${findings.length} finding(s) — see output.` : "Lint clean", 2600);
     updateSendGate();
     return;
   }
@@ -557,7 +558,7 @@ async function onRun() {
       lastRun = { lang: runtimeLang(lang), total: res.cases.length, passed };
       greenCode = (passed === res.cases.length) ? ranCode : null;  // unlock Send only on all-green
       toast(greenCode
-        ? `Ran ✓ — all ${passed} checks pass. <b>Send</b> unlocked.`
+        ? `Ran: all ${passed} checks pass. <b>Send</b> unlocked.`
         : `Ran — ${passed}/${res.cases.length} passed. Edit & Run again, or “Review my attempt”.`, 3000);
     } else {
       lastRun = { lang: runtimeLang(lang), total: 0, passed: 0 };
@@ -580,11 +581,11 @@ function renderOutput(stdout, stderr, stamp) {
 }
 function caseRows(rows, stamp) {
   const items = rows.map((r) => {
-    if (r.pending) return `<li class="case pending"><span class="ci">▷</span><span class="cn">${esc(r.name || "case")}</span><span class="cx">not run</span></li>`;
+    if (r.pending) return `<li class="case pending"><span class="ci" aria-hidden="true"></span><span class="cn">${esc(r.name || "case")}</span><span class="cx">not run</span></li>`;
     const ok = r.passed;
     const detail = (!ok && r.error) ? `<div class="cdiff"><span class="cd-err">error: ${esc(r.error)}</span></div>`
       : (!ok) ? `<div class="cdiff"><span class="cd-exp">expected <code>${esc(JSON.stringify(r.expected))}</code></span><span class="cd-got">got <code>${esc(JSON.stringify(r.got))}</code></span></div>` : "";
-    return `<li class="case ${ok ? "pass" : "fail"}"><span class="ci">${ok ? "✓" : "✗"}</span><span class="cn">${esc(r.name || "case")}</span>${detail}</li>`;
+    return `<li class="case ${ok ? "pass" : "fail"}"><span class="ci" aria-hidden="true"></span><span class="sr">${ok ? "passed" : "failed"}</span><span class="cn">${esc(r.name || "case")}</span>${detail}</li>`;
   }).join("");
   const passed = rows.filter((r) => r.passed).length;
   const tail = stamp ? `<span class="cstamp">ran ${stamp}</span>` : "";
@@ -649,7 +650,7 @@ function updateProfile(p) {
   const wrap = $("profile-wrap");
   if (!p) { wrap.innerHTML = ""; return; }
   const bits = [];
-  if (p.streak) bits.push(`<span class="pchip">🔥 ${esc(p.streak)}-day streak</span>`);
+  if (p.streak) bits.push(`<span class="pchip">${esc(p.streak)}-day streak</span>`);
   if (p.sessions != null) bits.push(`<span class="pchip">${esc(p.sessions)} sessions</span>`);
   if (p.concepts != null) bits.push(`<span class="pchip">${esc(p.concepts)} concepts</span>`);
   wrap.innerHTML = `<h2>Your journey</h2>${p.welcome ? `<div class="pwelcome md">${md(p.welcome)}</div>` : ""}${bits.length ? `<div class="pchips">${bits.join("")}</div>` : ""}`;
@@ -817,7 +818,7 @@ function buildIntake(s) {
       <textarea id="goal" placeholder="${s.repo_mode ? "e.g. walk me through adding a --verbose flag, or explain how auth works" : "e.g. how this auth middleware actually verifies a token"}"></textarea></div>
     ${(s.models && s.models.length > 1) ? `<div class="field"><label for="model">Model <span class="sub">repo work and deeper reviews do best on Sonnet</span></label>
       <select id="model">${s.models.map((m) => `<option value="${esc(m.id)}" ${m.id === (s.model || "") ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></div>` : ""}
-    <button class="btn primary" id="begin">Begin →</button>`;
+    <button class="btn primary" id="begin">Begin</button>`;
   let level = null, guidance = "balanced", intent = "explore";
   const wire = (groupId, set) => el.querySelectorAll("#" + groupId + " .chip").forEach((c) =>
     c.addEventListener("click", () => {
@@ -954,7 +955,7 @@ function buildDone(s) {
   const cp = $("copy-recap");
   if (cp) cp.addEventListener("click", () => {
     const text = (s.summary_md || "") + "\n\nLearned:\n" + (s.learned || []).map((x) => "- " + x).join("\n");
-    navigator.clipboard.writeText(text).then(() => toast("Recap copied ✓"), () => toast("Copy failed", 2000));
+    navigator.clipboard.writeText(text).then(() => toast("Recap copied"), () => toast("Copy failed", 2000));
   });
 }
 function showWork(on) {
