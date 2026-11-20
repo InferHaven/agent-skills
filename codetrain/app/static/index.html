@@ -11,19 +11,21 @@
   <script src="theme.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="mark"><svg width="28" height="28" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#0f141b"/><rect x="0.75" y="0.75" width="38.5" height="38.5" rx="8.25" fill="none" stroke="#39aaaa" stroke-opacity="0.28"/><rect x="5" y="7" width="30" height="26" rx="5" fill="none" stroke="#39aaaa" stroke-width="2"/><path d="M5 14 H35" stroke="#39aaaa" stroke-width="1.3" opacity=".5"/><circle cx="9.5" cy="10.5" r="1.3" fill="#aa3939"/><circle cx="13.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><circle cx="17.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><rect x="11.5" y="18" width="17" height="11" rx="3.2" fill="#39aaaa"/><path d="M16 23.6 L18.9 26.5 L24 20.5" fill="none" stroke="#0f141b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>CodeTrain</span>
-      <span class="title" id="title">Loading your session…</span>
-    </div>
-    <span class="spacer"></span>
-    <span class="badge" id="mode-badge" hidden></span>
-    <div class="status" id="status" data-s="thinking" role="status" aria-live="polite" aria-atomic="true">
-      <span class="dot" aria-hidden="true"></span><span id="status-label">connecting…</span>
-    </div>
-    <button class="toggle" id="progress-btn" title="Your progress" aria-label="Open your progress" aria-haspopup="dialog">Progress</button>
-    <button class="themebtn" data-theme-toggle type="button">Auto</button>
-    <button class="end-btn" id="end-session" title="Finish and save this session">End session</button>
+  <!-- The site's rail (sheet.css, the app variant): the brand where the line starts, this page's
+       tools, and End session as the terminus, at the buffer stop. -->
+  <header class="app-head">
+    <nav class="track track-app track-local" aria-label="Lesson">
+      <div class="track-in">
+        <span class="track-origin"><svg width="28" height="28" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#0f141b"/><rect x="0.75" y="0.75" width="38.5" height="38.5" rx="8.25" fill="none" stroke="#39aaaa" stroke-opacity="0.28"/><rect x="5" y="7" width="30" height="26" rx="5" fill="none" stroke="#39aaaa" stroke-width="2"/><path d="M5 14 H35" stroke="#39aaaa" stroke-width="1.3" opacity=".5"/><circle cx="9.5" cy="10.5" r="1.3" fill="#aa3939"/><circle cx="13.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><circle cx="17.5" cy="10.5" r="1.3" fill="#39aaaa" opacity=".7"/><rect x="11.5" y="18" width="17" height="11" rx="3.2" fill="#39aaaa"/><path d="M16 23.6 L18.9 26.5 L24 20.5" fill="none" stroke="#0f141b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="track-name">CodeTrain</span></span>
+        <div class="track-tools">
+          <div class="status" id="status" data-s="thinking" role="status" aria-live="polite" aria-atomic="true">
+            <span class="dot" aria-hidden="true"></span><span id="status-label">connecting…</span>
+          </div>
+          <button class="themebtn" data-theme-toggle type="button">Auto</button>
+        </div>
+        <div class="track-term"><button class="btn btn-ghost end-btn" id="end-session" type="button" title="Finish and save this session">End session</button></div>
+      </div>
+    </nav>
   </header>
 
   <div class="paused-banner ended-banner" id="ended-banner" role="status" hidden></div>
@@ -32,71 +34,89 @@
     Session paused — switch to your terminal and say <b>“arm it”</b> to resume. The page stays live.
   </div>
 
-  <main class="layout">
-    <!-- LESSON / INTAKE -->
-    <section class="panel lesson" aria-label="Lesson"><div class="pad" id="lesson">
-      <p class="eyebrow">getting ready</p>
-      <h1 class="step-head">Your tutor is setting up…</h1>
-      <p class="md">Hang tight — the first step will appear here in a moment.</p>
-    </div></section>
-
-    <!-- WORK: editor + run + feedback + tests -->
-    <section class="panel work" aria-label="Your work"><div class="pad">
-      <div class="file-tab">
-        <span class="name" id="file-name">scratch</span>
-        <span class="lang" id="file-lang">text</span>
-        <select class="etheme" id="editor-theme" title="Editor theme" aria-label="Editor theme">
-          <option value="dark">Dark</option>
-          <option value="midnight">Midnight</option>
-          <option value="hacker">Hacker</option>
-          <option value="light">Light</option>
-        </select>
-        <button class="ed-expand" id="ed-expand" type="button" title="Expand editor (Esc to exit)" aria-label="Expand editor">Expand</button>
+  <main class="lwrap">
+    <!-- One lesson sheet, as the hosted lesson screen draws it: the title block, the control row,
+         then the lesson, the work and the notes as cells divided by rules. -->
+    <div class="lsheet">
+      <div class="tblock lesson-tb">
+        <div class="tb-lesson"><small>Lesson</small><h1 id="title">Loading your session…</h1></div>
+        <div><small>Stop</small><strong id="tb-stop">Not started</strong></div>
+        <div><small>Written by</small><strong>You</strong></div>
+        <div><small>Checked by</small><strong class="stamp" id="tb-stamp">CodeTrain</strong></div>
+      </div>
+      <div class="lsheet-ctl">
+        <div class="lsheet-badges"><span class="badge" id="mode-badge" hidden></span></div>
+        <div class="working" id="working" role="status" aria-live="polite" hidden>
+          <img class="working-logo" src="logo-anim.svg" alt="" aria-hidden="true" />
+          <span id="working-msg">Working…</span>
+        </div>
+        <div class="head-right">
+          <button class="btn ghost" id="progress-btn" type="button" title="Your progress" aria-label="Open your progress" aria-haspopup="dialog">Progress</button>
+        </div>
       </div>
 
-      <div class="file-tabs" id="file-tabs" hidden></div>
-      <div class="editor" id="editor-mount"></div>
+      <div class="layout">
+        <!-- LESSON / INTAKE -->
+        <section class="cell lesson" aria-label="Lesson"><div class="pad" id="lesson">
+          <h2 class="step-head">Your tutor is setting up…</h2>
+          <p class="md">Hang tight — the first step will appear here in a moment.</p>
+        </div></section>
 
-      <div class="actions">
-        <button class="btn run" id="run">Run</button>
-        <button class="btn primary" id="send">Send to tutor</button>
-        <button class="btn ask" id="review" title="Get a full walkthrough — even if it isn't passing yet">Review my attempt</button>
-        <button class="btn ghost" id="ref" title="Quick language reference — not the answer">Reference</button>
-        <button class="btn ghost" id="skip" title="Skip this step and move on">Skip</button>
-        <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
-      </div>
-      <div class="askrow">
-        <input class="note-input" id="note" placeholder="ask a question, note what you tried, or @mention a file…" />
-        <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask</button>
-      </div>
-      <p class="run-hint" id="run-hint">Tip: <b>Run</b> to check yourself (<kbd>⌘/Ctrl+↵</kbd>). Send when green — or <b>Review my attempt</b> anytime for a walkthrough, even if it's failing.</p>
+        <!-- WORK: editor + run + feedback + tests -->
+        <section class="cell work" aria-label="Your work"><div class="pad">
+          <div class="file-tab">
+            <span class="name" id="file-name">scratch</span>
+            <span class="lang" id="file-lang">text</span>
+            <select class="etheme" id="editor-theme" title="Editor theme" aria-label="Editor theme">
+              <option value="dark">Dark</option>
+              <option value="midnight">Midnight</option>
+              <option value="hacker">Hacker</option>
+              <option value="light">Light</option>
+            </select>
+            <button class="ed-expand" id="ed-expand" type="button" title="Expand editor (Esc to exit)" aria-label="Expand editor">Expand</button>
+          </div>
 
-      <div id="output-wrap"></div>
-      <div id="cases-wrap"></div>
-      <div id="feedback-wrap" aria-live="polite" aria-atomic="true"></div>
-      <div id="patch-wrap" aria-live="polite"></div>
-      <div id="tests-wrap"></div>
-    </div></section>
+          <div class="file-tabs" id="file-tabs" hidden></div>
+          <div class="editor" id="editor-mount"></div>
 
-    <!-- RAIL: progress + learned -->
-    <aside class="panel rail" aria-label="Progress and notes"><div class="pad">
-      <div id="profile-wrap"></div>
-      <div id="usage-wrap"></div>
-      <div>
-        <h2>Session</h2>
-        <div class="meta-row" id="meta-level">Level: <b>—</b></div>
-        <div class="meta-row" id="meta-goal">Goal: <b>—</b></div>
+          <div class="actions">
+            <button class="btn run" id="run">Run</button>
+            <button class="btn primary" id="send">Send to tutor</button>
+            <button class="btn ask" id="review" title="Get a full walkthrough — even if it isn't passing yet">Review my attempt</button>
+            <button class="btn ghost" id="ref" title="Quick language reference — not the answer">Reference</button>
+            <button class="btn ghost" id="skip" title="Skip this step and move on">Skip</button>
+            <button class="btn ghost" id="reset" title="Restore the starter code">Reset</button>
+          </div>
+          <div class="askrow">
+            <input class="note-input" id="note" placeholder="ask a question, note what you tried, or @mention a file…" />
+            <button class="btn ghost ask2" id="ask" title="Ask your tutor a question — no code needed">Ask</button>
+          </div>
+          <p class="run-hint" id="run-hint">Tip: <b>Run</b> to check yourself (<kbd>⌘/Ctrl+↵</kbd>). Send when green — or <b>Review my attempt</b> anytime for a walkthrough, even if it's failing.</p>
+
+          <div id="output-wrap"></div>
+          <div id="cases-wrap"></div>
+          <div id="feedback-wrap" aria-live="polite" aria-atomic="true"></div>
+          <div id="patch-wrap" aria-live="polite"></div>
+          <div id="tests-wrap"></div>
+        </div></section>
+
+        <!-- NOTES: the profile, the session and what has been learned. Where the lesson stands is
+             the title block's Stop and the stop line at the head of the lesson. -->
+        <aside class="cell rail" aria-label="Progress and notes"><div class="pad">
+          <div id="profile-wrap"></div>
+          <div id="usage-wrap"></div>
+          <div>
+            <h2>Session</h2>
+            <div class="meta-row" id="meta-level">Level: <b>—</b></div>
+            <div class="meta-row" id="meta-goal">Goal: <b>—</b></div>
+          </div>
+          <div>
+            <h2>What you've learned</h2>
+            <ul class="learned" id="learned"><li class="empty">Your wins will collect here as you go.</li></ul>
+          </div>
+        </div></aside>
       </div>
-      <div>
-        <h2>Progress</h2>
-        <div class="progress-track" id="prog-track" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
-        <div class="progress-label" id="prog-label">not started</div>
-      </div>
-      <div>
-        <h2>What you've learned</h2>
-        <ul class="learned" id="learned"><li class="empty">Your wins will collect here as you go.</li></ul>
-      </div>
-    </div></aside>
+    </div>
   </main>
 
   <div class="drawer-backdrop" id="progress-backdrop" hidden></div>
@@ -109,10 +129,6 @@
   </aside>
 
   <div class="confetti" id="confetti" aria-hidden="true"></div>
-  <div class="working" id="working" role="status" aria-live="polite" hidden>
-    <img class="working-logo" src="logo-anim.svg" alt="" aria-hidden="true" />
-    <span id="working-msg">Working…</span>
-  </div>
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="prism.js"></script>
   <script src="docklint.js"></script>

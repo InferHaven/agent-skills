@@ -26,7 +26,10 @@ const POLL_MS = 1200;
 const cache = {
   title: null, statusS: null, badge: null, level: null, goal: null, prog: null,
   learned: null, feedback: null, tests: null, cases: null, view: null, profile: null, usage: null,
-  patch: null,
+  patch: null, stops: null,
+  // undefined until the title block has rendered once: a page opened on a lesson that already
+  // passed a check shows the stamp in place, and only a pass seen on this page lands it.
+  stamped: undefined,
 };
 let confettiDone = false;
 let learnedPrev = [];
@@ -624,16 +627,51 @@ function updateHeader(s) {
 function updateRail(s) {
   if (s.level !== cache.level) { $("meta-level").innerHTML = "Level: <b>" + esc(s.level || "—") + "</b>"; cache.level = s.level; }
   if (s.goal !== cache.goal) { $("meta-goal").innerHTML = "Goal: <b>" + esc(s.goal || "—") + "</b>"; cache.goal = s.goal; }
-  const p = s.progress || {}; const sig = (p.step || 0) + "/" + (p.total || "?");
+  // The title block's Stop cell is where the lesson stands; the stop line draws the same.
+  const p = s.progress || {}; const done = s.phase === "done";
+  const sig = (p.step || 0) + "/" + (p.total || "?") + (done ? "/done" : "");
   if (sig !== cache.prog) {
-    if (p.step) {
-      const pct = p.total ? Math.round((p.step / p.total) * 100) : Math.min(p.step * 14, 92);
-      $("prog-fill").style.width = pct + "%";
-      const track = $("prog-track"); if (track) track.setAttribute("aria-valuenow", pct);
-      $("prog-label").textContent = p.total ? `step ${p.step} of ${p.total}` : `step ${p.step}`;
-    }
+    const total = p.total || 0;
+    setText($("tb-stop"), done && total ? `${total} of ${total}`
+      : p.step ? (total ? `${p.step} of ${total}` : String(p.step)) : "Not started");
     cache.prog = sig;
   }
+  updateStamp(s);
+}
+/* "Checked by CodeTrain" takes its stamp once a check in this lesson has passed: a stop behind
+   you, this stop's own review saying it passed, or the lesson done. The rule and the landing are
+   the hosted lesson screen's (web/app/study/study.js stampClass); the drawing is sheet.css. */
+function updateStamp(s) {
+  const p = s.progress || {};
+  const passed = s.phase === "done" || (p.step || 0) > 1 || !!(s.feedback && s.feedback.status === "pass");
+  if (passed === cache.stamped) return;
+  $("tb-stamp").className = !passed ? "stamp"
+    : cache.stamped === false ? "stamp is-stamped is-fresh" : "stamp is-stamped";
+  cache.stamped = passed;
+}
+/* The stop line at the head of the lesson: filled for a stop that passed, ringed for this one, a
+   cross while this one's last review asked for another try, open for the stops ahead. Numbers
+   only, never the headings ahead. The same marks as the hosted screen's stopsHtml. */
+function stopsHtml(s) {
+  const p = s.progress || {}; const total = p.total || 0;
+  if (!total) return "";
+  const no = Math.min(p.step || 1, total); const done = s.phase === "done";
+  const retry = !done && !!(s.feedback && s.feedback.status === "retry");
+  const said = { done: "passed", cur: "you are here", fail: "you are here, try again", next: "not yet" };
+  let items = "";
+  for (let i = 1; i <= total; i++) {
+    const st = done || i < no ? "done" : i === no ? (retry ? "fail" : "cur") : "next";
+    items += `<li class="stop ${st}"><span class="mk${st === "cur" ? "" : " " + st}" aria-hidden="true"></span>`
+      + `<span class="stop-n">${i}</span><span class="vh">: ${said[st]}</span></li>`;
+  }
+  const label = done ? `Lesson complete, ${total} of ${total} stops passed` : `Stop ${no} of ${total}`;
+  return `<ol class="stops" aria-label="${label}">${items}</ol>`;
+}
+function updateStops(s) {
+  const wrap = $("stops-wrap"); if (!wrap) return;
+  const html = stopsHtml(s);
+  if (html === cache.stops && wrap.innerHTML) return;
+  cache.stops = html; wrap.innerHTML = html;
 }
 function updateLearned(items) {
   const sig = JSON.stringify(items);
@@ -660,7 +698,7 @@ function checksHtml(checks) {
   const items = checks.map((c) => {
     const ok = typeof c === "string" ? true : c.pass !== false;     // brick ✗ for a missing criterion
     const text = typeof c === "string" ? c : (c.label || "");
-    return `<li class="${ok ? "ok" : "no"}">${esc(text)}</li>`;
+    return `<li class="${ok ? "ok" : "no"}"><span class="sr">${ok ? "passed" : "failed"}: </span>${esc(text)}</li>`;
   }).join("");
   return `<ul class="fb-checks">${items}</ul>`;
 }
@@ -792,8 +830,7 @@ const PERSONAS = [
 function buildIntake(s) {
   const el = $("lesson"); el.className = "intake";
   el.innerHTML = `
-    <p class="eyebrow">before we start</p>
-    <h1 class="step-head">Let's tune this to you.</h1>
+    <h2 class="step-head">Let's tune this to you.</h2>
     <p class="lead">${esc(s.intro || "Pick where you're at and how much help you want. Your tutor shapes the steps around it — you always write the code.")}</p>
     <div class="field"><label id="lvl-l">How comfortable are you here?</label>
       <div class="chips" id="lvl" role="group" aria-labelledby="lvl-l">
@@ -863,12 +900,12 @@ function buildStep(s) {
   const hints = step.hints || [];
   const opener = openerOf(step.body_md);
   el.innerHTML = `
-    <p class="eyebrow">${esc(step.eyebrow || (s.progress && s.progress.step ? "step " + s.progress.step : "step"))}</p>
-    <h1 class="step-head">${esc(step.heading || "Working…")}</h1>
+    <div id="stops-wrap"></div>
+    <h2 class="step-head">${esc(step.heading || "Working…")}</h2>
     ${questionHtml(opener.question)}
     <div class="md">${md(opener.rest)}</div>
     ${step.visual ? `<div id="step-visual"></div>` : ""}
-    ${step.task_md ? `<div class="task"><p class="eyebrow">your task</p><div class="md">${md(step.task_md)}</div></div>` : ""}
+    ${step.task_md ? `<div class="task"><div class="md">${md(step.task_md)}</div></div>` : ""}
     <div class="hints" id="hints"><button class="hint-btn" id="hint-btn">Need a nudge?</button></div>`;
   revealedHints = 0;
   wireHints(hints, step.hints_held || []);
@@ -886,8 +923,10 @@ function buildStep(s) {
   const canRun = runtimeAvailable(lang) || lang === "dockerfile";
   const verify = canRun && !!(activeTests(s).cases && activeTests(s).cases.length);
   $("run").style.display = canRun ? "" : "none";
-  $("run-hint").textContent = verify
-    ? "Run to check yourself — Send unlocks when every check is ✓. Failing or stuck? “Review my attempt” gives a walkthrough anytime."
+  // The mark is drawn, the way the checks below draw theirs; its word is for a screen reader.
+  // Every string here is fixed text, never the lesson's, so innerHTML takes nothing from outside.
+  $("run-hint").innerHTML = verify
+    ? "Run to check yourself — Send unlocks when every check is <span class=\"tick\" aria-hidden=\"true\"></span><span class=\"sr\">passed</span>. Failing or stuck? “Review my attempt” gives a walkthrough anytime."
     : canRun
     ? "Run to try it out, then Send — or “Review my attempt” for a walkthrough anytime."
     : "Send when ready, or “Review my attempt” for a walkthrough — your tutor runs this language for you.";
@@ -944,8 +983,8 @@ function buildDone(s) {
   $("end-session").hidden = true;
   const el = $("lesson"); el.className = "done";
   el.innerHTML = `
-    <p class="eyebrow">🎉 session complete</p>
-    <h1 class="step-head">${esc(s.title || "Great work — you did it.")}</h1>
+    <div id="stops-wrap"></div>
+    <h2 class="step-head">${esc(s.title || "Great work — you did it.")}</h2>
     <div class="md">${md(s.summary_md || "")}</div>
     <div class="done-actions">
       <button class="btn primary" id="copy-recap">Copy recap</button>
@@ -960,6 +999,8 @@ function buildDone(s) {
 }
 function showWork(on) {
   document.querySelector(".work").style.display = on ? "" : "none";
+  // With no work cell the sheet's body is the lesson and the notes, with no empty column.
+  document.querySelector(".layout").classList.toggle("no-work", !on);
 }
 function wireHints(hints, hintsHeld) {
   const btn = $("hint-btn"), wrap = $("hints");
@@ -1001,6 +1042,7 @@ function render(s) {
     if (view === "done" && !confettiDone) { confettiDone = true; fireConfetti(); }
   }
 
+  updateStops(s);
   if (view.startsWith("step:")) renderCases(s);
   updateFeedback(s.feedback);
   updateTests(activeTests(s));
